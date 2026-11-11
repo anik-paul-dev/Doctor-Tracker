@@ -157,6 +157,7 @@ export function useDeleteDoctor() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["doctors"] });
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor-patients"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast.success("Doctor and related records removed");
     },

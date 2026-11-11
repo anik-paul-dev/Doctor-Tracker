@@ -4,6 +4,10 @@ import Doctor, { IDoctor } from "@/models/Doctor";
 import Patient from "@/models/Patient";
 import { DoctorQuery } from "@/lib/validations";
 
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function getDoctors(query: DoctorQuery) {
   await connectDB();
 
@@ -21,13 +25,14 @@ export async function getDoctors(query: DoctorQuery) {
 
   const filter: FilterQuery<IDoctor> = {};
 
-  if (search) {
+  if (search && search.trim()) {
+    const safe = escapeRegex(search.trim());
     filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { specialization: { $regex: search, $options: "i" } },
-      { hospital: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
-      { phone: { $regex: search, $options: "i" } },
+      { name: { $regex: safe, $options: "i" } },
+      { specialization: { $regex: safe, $options: "i" } },
+      { hospital: { $regex: safe, $options: "i" } },
+      { email: { $regex: safe, $options: "i" } },
+      { phone: { $regex: safe, $options: "i" } },
     ];
   }
 
@@ -45,7 +50,9 @@ export async function getDoctors(query: DoctorQuery) {
       filter.createdAt.$gte = new Date(startDate);
     }
     if (endDate) {
-      filter.createdAt.$lte = new Date(endDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filter.createdAt.$lte = end;
     }
   }
 

@@ -1,7 +1,9 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  "doctor-tracker-default-jwt-secret-key-development-minimum-32-chars";
 const TOKEN_NAME = "doctor-tracker-token";
 const TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 

@@ -69,10 +69,11 @@ export function useCreatePatient() {
       }
       return json.data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["doctors"] });
-      queryClient.invalidateQueries({ queryKey: ["doctor-patients", variables.doctorId] });
+      queryClient.invalidateQueries({ queryKey: ["doctor"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor-patients"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast.success("Patient created successfully");
     },
@@ -101,6 +102,8 @@ export function useUpdatePatient() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["doctors"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor"] });
       queryClient.invalidateQueries({ queryKey: ["doctor-patients"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast.success("Patient updated successfully");
@@ -128,6 +131,7 @@ export function useDeletePatient() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       queryClient.invalidateQueries({ queryKey: ["doctors"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor"] });
       queryClient.invalidateQueries({ queryKey: ["doctor-patients"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast.success("Patient deleted successfully");

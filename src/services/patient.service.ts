@@ -4,6 +4,10 @@ import Patient, { IPatient } from "@/models/Patient";
 import Doctor from "@/models/Doctor";
 import { PatientQuery } from "@/lib/validations";
 
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function getPatients(query: PatientQuery) {
   await connectDB();
 
@@ -21,12 +25,13 @@ export async function getPatients(query: PatientQuery) {
 
   const filter: FilterQuery<IPatient> = {};
 
-  if (search) {
+  if (search && search.trim()) {
+    const safe = escapeRegex(search.trim());
     filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { condition: { $regex: search, $options: "i" } },
-      { phone: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
+      { name: { $regex: safe, $options: "i" } },
+      { condition: { $regex: safe, $options: "i" } },
+      { phone: { $regex: safe, $options: "i" } },
+      { email: { $regex: safe, $options: "i" } },
     ];
   }
 
@@ -44,7 +49,9 @@ export async function getPatients(query: PatientQuery) {
       filter.createdAt.$gte = new Date(startDate);
     }
     if (endDate) {
-      filter.createdAt.$lte = new Date(endDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filter.createdAt.$lte = end;
     }
   }
 
@@ -86,12 +93,13 @@ export async function getPatientsByDoctor(
 
   const filter: FilterQuery<IPatient> = { doctorId };
 
-  if (search) {
+  if (search && search.trim()) {
+    const safe = escapeRegex(search.trim());
     filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { condition: { $regex: search, $options: "i" } },
-      { phone: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
+      { name: { $regex: safe, $options: "i" } },
+      { condition: { $regex: safe, $options: "i" } },
+      { phone: { $regex: safe, $options: "i" } },
+      { email: { $regex: safe, $options: "i" } },
     ];
   }
 
@@ -105,7 +113,9 @@ export async function getPatientsByDoctor(
       filter.createdAt.$gte = new Date(startDate);
     }
     if (endDate) {
-      filter.createdAt.$lte = new Date(endDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filter.createdAt.$lte = end;
     }
   }
 
@@ -177,10 +187,23 @@ export async function updatePatient(id: string, data: Partial<IPatient>) {
     return null;
   }
 
+  // If doctorId is being updated and changed, synchronize patient counts
+  if (data.doctorId) {
+    const existing = (await Patient.findById(id).lean()) as (IPatient & { _id: Types.ObjectId }) | null;
+    if (existing && existing.doctorId && existing.doctorId.toString() !== data.doctorId.toString()) {
+      await Promise.all([
+        Doctor.findByIdAndUpdate(existing.doctorId, { $inc: { patientCount: -1 } }),
+        Doctor.findByIdAndUpdate(data.doctorId, { $inc: { patientCount: 1 } }),
+      ]);
+    }
+  }
+
   return Patient.findByIdAndUpdate(id, data, {
     new: true,
     runValidators: true,
-  }).lean();
+  })
+    .populate("doctorId", "name specialization")
+    .lean();
 }
 
 export async function deletePatient(id: string) {
