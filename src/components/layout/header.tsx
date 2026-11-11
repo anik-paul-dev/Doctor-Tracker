@@ -3,9 +3,10 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Menu, Moon, Sun } from "lucide-react";
+import { Menu, Moon, Sun, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "./user-menu";
+import { CommandSearch } from "@/components/shared/command-search";
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -41,6 +42,20 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Search Trigger Button matching image */}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("open-command-search"))}
+          className="flex items-center gap-2.5 h-9 px-3 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-all cursor-pointer text-xs"
+          title="Search (Ctrl + K)"
+        >
+          <Search className="h-3.5 w-3.5" />
+          <span className="font-normal text-muted-foreground">Search</span>
+          <kbd className="pointer-events-none inline-flex h-5 select-none items-center rounded border border-border/60 bg-muted px-1.5 font-mono text-[10px] text-muted-foreground">
+            Ctrl K
+          </kbd>
+        </button>
+
         {/* Theme Toggle */}
         <Button
           variant="ghost"
@@ -57,6 +72,9 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
         {/* User Dropdown */}
         <UserMenu />
       </div>
+
+      {/* Global Command Search Dialog */}
+      <CommandSearch />
     </header>
   );
 }

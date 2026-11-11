@@ -4,16 +4,18 @@ import React from "react";
 import Link from "next/link";
 import { useDashboardStats } from "@/hooks/use-dashboard";
 import { StatsCards } from "@/components/dashboard/stats-cards";
-import { DoctorChart } from "@/components/dashboard/doctor-chart";
 import { PatientTrendChart } from "@/components/dashboard/patient-trend-chart";
-import { SpecializationPie } from "@/components/dashboard/specialization-pie";
-import { RecentActivity } from "@/components/dashboard/recent-activity";
+import { ConditionChart } from "@/components/dashboard/condition-chart";
+import { DemographicsChart } from "@/components/dashboard/demographics-chart";
+import { TopDoctorsRoster } from "@/components/dashboard/top-doctors-roster";
+import { SpecializationBarChart } from "@/components/dashboard/specialization-bar-chart";
+import { RecentAdmissions } from "@/components/dashboard/recent-admissions";
 import {
   StatsCardsSkeleton,
   ChartSkeleton,
 } from "@/components/shared/loading-skeleton";
 import { Button } from "@/components/ui/button";
-import { Stethoscope, UserPlus, RefreshCw, AlertCircle } from "lucide-react";
+import { Stethoscope, UserPlus, RefreshCw, AlertCircle, Search } from "lucide-react";
 
 export default function DashboardPage() {
   const { data, isLoading, isError, refetch, isFetching } = useDashboardStats();
@@ -31,7 +33,21 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick Search Button matching image */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("open-command-search"))}
+            className="flex items-center gap-2.5 h-9 px-3 rounded-lg border border-border/80 bg-muted/40 hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-all cursor-pointer text-xs"
+            title="Search (Ctrl + K)"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span>Search</span>
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center rounded border border-border/60 bg-muted px-1.5 font-mono text-[10px] text-muted-foreground">
+              Ctrl K
+            </kbd>
+          </button>
+
           <Button
             variant="outline"
             size="sm"
@@ -84,7 +100,19 @@ export default function DashboardPage() {
         <StatsCards stats={data.stats} />
       ) : null}
 
-      {/* Middle Visuals: Trends & Specialization Pie */}
+      {/* Section 1: Patient Admissions Trend (with 7d / 14d / 30d filter) */}
+      {isLoading ? (
+        <ChartSkeleton />
+      ) : (
+        <PatientTrendChart
+          monthlyData={data?.monthlyTrend || []}
+          data7={data?.admissionTrend7 || []}
+          data14={data?.admissionTrend14 || []}
+          data30={data?.admissionTrend30 || []}
+        />
+      )}
+
+      {/* Section 2: Patients by Condition & Patient Demographics (Side by Side) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {isLoading ? (
           <>
@@ -93,28 +121,38 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <PatientTrendChart data={data?.monthlyTrend || []} />
-            <SpecializationPie
+            <ConditionChart data={data?.conditionDistribution || []} />
+            <DemographicsChart
+              data={data?.genderDistribution || []}
+              averageAge={data?.averageAge || 0}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Section 3: Top Doctors by Roster & Doctors by Specialization (Side by Side) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {isLoading ? (
+          <>
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </>
+        ) : (
+          <>
+            <TopDoctorsRoster data={data?.patientsPerDoctor || []} />
+            <SpecializationBarChart
               data={data?.specializationDistribution || []}
             />
           </>
         )}
       </div>
 
-      {/* Full Width Bar Chart: Top Doctors by Patient Count */}
-      {isLoading ? (
-        <ChartSkeleton />
-      ) : (
-        <DoctorChart data={data?.patientsPerDoctor || []} />
-      )}
-
-      {/* Recent Activity Feed */}
+      {/* Section 4: Recent Admissions (Latest patients added to rosters) */}
       {isLoading ? (
         <div className="h-40 rounded-xl border bg-card animate-pulse" />
       ) : (
-        <RecentActivity activities={data?.recentActivity || []} />
+        <RecentAdmissions data={data?.recentAdmissions || []} />
       )}
     </div>
   );
 }
-

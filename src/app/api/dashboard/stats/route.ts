@@ -19,12 +19,24 @@ export async function GET() {
       patientsPerDoctor,
       monthlyTrend,
       recentActivity,
+      conditionDistribution,
+      genderData,
+      recentAdmissions,
+      admissionTrend7,
+      admissionTrend14,
+      admissionTrend30,
     ] = await Promise.all([
       dashboardService.getDashboardStats(),
       dashboardService.getSpecializationDistribution(),
       dashboardService.getPatientsPerDoctor(),
       dashboardService.getMonthlyTrend(),
       dashboardService.getRecentActivity(),
+      dashboardService.getConditionDistribution(),
+      dashboardService.getGenderDistribution(),
+      dashboardService.getRecentAdmissions(),
+      dashboardService.getAdmissionTrend(7),
+      dashboardService.getAdmissionTrend(14),
+      dashboardService.getAdmissionTrend(30),
     ]);
 
     const dashboardData: DashboardData = {
@@ -33,6 +45,13 @@ export async function GET() {
       patientsPerDoctor,
       monthlyTrend,
       recentActivity,
+      conditionDistribution,
+      genderDistribution: genderData.distribution,
+      averageAge: genderData.averageAge,
+      recentAdmissions,
+      admissionTrend7,
+      admissionTrend14,
+      admissionTrend30,
     };
 
     return successResponse(dashboardData);
