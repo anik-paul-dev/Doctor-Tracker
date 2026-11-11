@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  Calendar,
   Stethoscope,
   Users,
   Activity,
@@ -20,6 +21,11 @@ export const navItems = [
     title: "Dashboard",
     href: "/",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Appointments",
+    href: "/appointments",
+    icon: Calendar,
   },
   {
     title: "Doctors",

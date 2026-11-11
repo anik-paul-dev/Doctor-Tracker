@@ -12,6 +12,7 @@ import {
 import {
   Search,
   LayoutDashboard,
+  Calendar,
   Stethoscope,
   Users,
   User as UserIcon,
@@ -89,6 +90,12 @@ export function CommandSearch() {
     id: "nav-dashboard",
     label: "Dashboard",
     action: () => navigate("/"),
+  });
+  items.push({
+    type: "nav",
+    id: "nav-appointments",
+    label: "Appointments",
+    action: () => navigate("/appointments"),
   });
   items.push({
     type: "nav",
@@ -269,11 +276,11 @@ export function CommandSearch() {
                     ? "bg-accent/80 text-accent-foreground font-semibold"
                     : "text-foreground hover:bg-muted/60"
                 }`}
-                onClick={() => navigate("/doctors")}
+                onClick={() => navigate("/appointments")}
                 onMouseEnter={() => setActiveIndex(1)}
               >
-                <Stethoscope className="h-4 w-4 text-teal-400 shrink-0" />
-                <span>Doctors</span>
+                <Calendar className="h-4 w-4 text-teal-400 shrink-0" />
+                <span>Appointments</span>
               </button>
               <button
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
@@ -281,8 +288,20 @@ export function CommandSearch() {
                     ? "bg-accent/80 text-accent-foreground font-semibold"
                     : "text-foreground hover:bg-muted/60"
                 }`}
-                onClick={() => navigate("/patients")}
+                onClick={() => navigate("/doctors")}
                 onMouseEnter={() => setActiveIndex(2)}
+              >
+                <Stethoscope className="h-4 w-4 text-teal-400 shrink-0" />
+                <span>Doctors</span>
+              </button>
+              <button
+                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  activeIndex === 3
+                    ? "bg-accent/80 text-accent-foreground font-semibold"
+                    : "text-foreground hover:bg-muted/60"
+                }`}
+                onClick={() => navigate("/patients")}
+                onMouseEnter={() => setActiveIndex(3)}
               >
                 <Users className="h-4 w-4 text-teal-400 shrink-0" />
                 <span>Patients</span>
@@ -298,7 +317,7 @@ export function CommandSearch() {
               </p>
               <div className="space-y-0.5">
                 {doctors.map((doc, i) => {
-                  const idx = 3 + i;
+                  const idx = 4 + i;
                   return (
                     <button
                       key={doc._id}
@@ -336,7 +355,7 @@ export function CommandSearch() {
               </p>
               <div className="space-y-0.5">
                 {patients.map((pat, i) => {
-                  const idx = 3 + doctors.length + i;
+                  const idx = 4 + doctors.length + i;
                   const dotStyle = CONDITION_DOT_STYLES[pat.condition] || DEFAULT_DOT_STYLE;
                   return (
                     <button
@@ -379,12 +398,12 @@ export function CommandSearch() {
             <div className="space-y-0.5">
               <button
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                  activeIndex === 3 + doctors.length + patients.length
+                  activeIndex === 4 + doctors.length + patients.length
                     ? "bg-accent/80 text-accent-foreground font-medium"
                     : "text-foreground hover:bg-muted/60"
                 }`}
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                onMouseEnter={() => setActiveIndex(3 + doctors.length + patients.length)}
+                onMouseEnter={() => setActiveIndex(4 + doctors.length + patients.length)}
               >
                 {theme === "dark" ? (
                   <Sun className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -395,12 +414,12 @@ export function CommandSearch() {
               </button>
               <button
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors ${
-                  activeIndex === 4 + doctors.length + patients.length
+                  activeIndex === 5 + doctors.length + patients.length
                     ? "bg-destructive/15 text-destructive font-medium"
                     : ""
                 }`}
                 onClick={() => logout()}
-                onMouseEnter={() => setActiveIndex(4 + doctors.length + patients.length)}
+                onMouseEnter={() => setActiveIndex(5 + doctors.length + patients.length)}
               >
                 <LogOut className="h-4 w-4 shrink-0" />
                 <span>Sign out</span>

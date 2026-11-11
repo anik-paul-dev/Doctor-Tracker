@@ -26,6 +26,11 @@ export const SPECIALIZATIONS = [
 ] as const;
 
 export const PATIENT_CONDITIONS = [
+  "Critical",
+  "Serious",
+  "Stable",
+  "Recovering",
+  "Discharged",
   "Diabetes",
   "Hypertension",
   "Asthma",

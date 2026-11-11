@@ -38,6 +38,21 @@ export const createPatientSchema = z.object({
 
 export const updatePatientSchema = createPatientSchema.omit({ doctorId: true }).partial();
 
+// Appointment schemas
+export const createAppointmentSchema = z.object({
+  patientId: z.string().min(1, "Patient is required"),
+  doctorId: z.string().min(1, "Doctor is required"),
+  date: z.string().min(1, "Date is required"),
+  time: z.string().min(1, "Time is required"),
+  duration: z.coerce.number().min(15).max(120).default(45),
+  reason: z.string().min(2, "Reason is required").max(200),
+  room: z.string().min(1, "Room is required").max(100),
+  status: z.enum(["scheduled", "confirmed", "completed", "cancelled"]).default("scheduled"),
+  notes: z.string().max(500).optional(),
+});
+
+export const updateAppointmentSchema = createAppointmentSchema.partial();
+
 // Query schemas
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -59,6 +74,13 @@ export const patientQuerySchema = paginationSchema.extend({
   doctorId: z.string().optional(),
 });
 
+export const appointmentQuerySchema = paginationSchema.extend({
+  status: z.string().optional(),
+  doctorId: z.string().optional(),
+  patientId: z.string().optional(),
+  date: z.string().optional(),
+});
+
 // Types
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -66,6 +88,8 @@ export type CreateDoctorInput = z.infer<typeof createDoctorSchema>;
 export type UpdateDoctorInput = z.infer<typeof updateDoctorSchema>;
 export type CreatePatientInput = z.infer<typeof createPatientSchema>;
 export type UpdatePatientInput = z.infer<typeof updatePatientSchema>;
+export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>;
+export type UpdateAppointmentInput = z.infer<typeof updateAppointmentSchema>;
 export type DoctorQuery = z.infer<typeof doctorQuerySchema>;
 export type PatientQuery = z.infer<typeof patientQuerySchema>;
-
+export type AppointmentQuery = z.infer<typeof appointmentQuerySchema>;

@@ -3,6 +3,10 @@
 import React from "react";
 import Link from "next/link";
 import { useDashboardStats } from "@/hooks/use-dashboard";
+import { ClinicHealth } from "@/components/dashboard/clinic-health";
+import { SmartInsights } from "@/components/dashboard/smart-insights";
+import { TodaySchedule } from "@/components/dashboard/today-schedule";
+import { LiveActivity } from "@/components/dashboard/live-activity";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { PatientTrendChart } from "@/components/dashboard/patient-trend-chart";
 import { ConditionChart } from "@/components/dashboard/condition-chart";
@@ -15,7 +19,7 @@ import {
   ChartSkeleton,
 } from "@/components/shared/loading-skeleton";
 import { Button } from "@/components/ui/button";
-import { Stethoscope, UserPlus, RefreshCw, AlertCircle, Search } from "lucide-react";
+import { Stethoscope, UserPlus, RefreshCw, AlertCircle, Search, Calendar } from "lucide-react";
 
 export default function DashboardPage() {
   const { data, isLoading, isError, refetch, isFetching } = useDashboardStats();
@@ -60,6 +64,12 @@ export default function DashboardPage() {
             />
             Refresh
           </Button>
+          <Link href="/appointments">
+            <Button size="sm" variant="outline" className="h-9 text-xs font-semibold">
+              <Calendar className="h-3.5 w-3.5 mr-1.5" />
+              Appointments
+            </Button>
+          </Link>
           <Link href="/doctors">
             <Button size="sm" className="h-9 text-xs font-semibold">
               <Stethoscope className="h-3.5 w-3.5 mr-1.5" />
@@ -92,6 +102,21 @@ export default function DashboardPage() {
           </Button>
         </div>
       )}
+
+      {/* Section 0: Clinic Health & Smart Insights (Matching Image 1 & Image 2) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {isLoading ? (
+          <>
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </>
+        ) : (
+          <>
+            <ClinicHealth data={data?.clinicHealth} />
+            <SmartInsights items={data?.smartInsights} />
+          </>
+        )}
+      </div>
 
       {/* 4 Stats Cards */}
       {isLoading ? (
@@ -130,7 +155,22 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Section 3: Top Doctors by Roster & Doctors by Specialization (Side by Side) */}
+      {/* Section 3: Today's Schedule & Live Activity (Side by Side matching Image 10) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {isLoading ? (
+          <>
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </>
+        ) : (
+          <>
+            <TodaySchedule items={data?.todaySchedule} />
+            <LiveActivity items={data?.liveActivities} />
+          </>
+        )}
+      </div>
+
+      {/* Section 4: Top Doctors by Roster & Doctors by Specialization (Side by Side) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {isLoading ? (
           <>
@@ -147,7 +187,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Section 4: Recent Admissions (Latest patients added to rosters) */}
+      {/* Section 5: Recent Admissions (Latest patients added to rosters) */}
       {isLoading ? (
         <div className="h-40 rounded-xl border bg-card animate-pulse" />
       ) : (

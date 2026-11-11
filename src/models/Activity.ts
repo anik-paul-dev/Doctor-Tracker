@@ -1,0 +1,43 @@
+import mongoose, { Schema, Document } from "mongoose";
+
+export type ActivityActionType = "Created" | "Updated" | "Deleted";
+
+export interface IActivity extends Document {
+  type: ActivityActionType;
+  userName: string;
+  description: string;
+  entityType: "doctor" | "patient" | "appointment";
+  createdAt: Date;
+}
+
+const ActivitySchema = new Schema<IActivity>(
+  {
+    type: {
+      type: String,
+      enum: ["Created", "Updated", "Deleted"],
+      required: true,
+    },
+    userName: {
+      type: String,
+      required: true,
+      default: "Alex Morgan",
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    entityType: {
+      type: String,
+      enum: ["doctor", "patient", "appointment"],
+      required: true,
+      index: true,
+    },
+  },
+  {
+    timestamps: { createdAt: true, updatedAt: false },
+  }
+);
+
+export default mongoose.models.Activity ||
+  mongoose.model<IActivity>("Activity", ActivitySchema);
+

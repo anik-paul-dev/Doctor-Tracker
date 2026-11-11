@@ -18,6 +18,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
 
   const getPageTitle = () => {
     if (pathname === "/") return "Dashboard";
+    if (pathname === "/appointments") return "Appointments";
     if (pathname === "/doctors") return "Doctors Management";
     if (pathname.startsWith("/doctors/")) return "Doctor Profile";
     if (pathname === "/patients") return "Patients Directory";

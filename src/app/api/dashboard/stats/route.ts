@@ -25,6 +25,10 @@ export async function GET() {
       admissionTrend7,
       admissionTrend14,
       admissionTrend30,
+      clinicHealth,
+      smartInsights,
+      todaySchedule,
+      liveActivities,
     ] = await Promise.all([
       dashboardService.getDashboardStats(),
       dashboardService.getSpecializationDistribution(),
@@ -37,6 +41,10 @@ export async function GET() {
       dashboardService.getAdmissionTrend(7),
       dashboardService.getAdmissionTrend(14),
       dashboardService.getAdmissionTrend(30),
+      dashboardService.getClinicHealth(),
+      dashboardService.getSmartInsights(),
+      dashboardService.getTodaySchedule(),
+      dashboardService.getLiveActivities(),
     ]);
 
     const dashboardData: DashboardData = {
@@ -52,6 +60,10 @@ export async function GET() {
       admissionTrend7,
       admissionTrend14,
       admissionTrend30,
+      clinicHealth,
+      smartInsights,
+      todaySchedule,
+      liveActivities,
     };
 
     return successResponse(dashboardData);

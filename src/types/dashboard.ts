@@ -58,6 +58,40 @@ export interface AdmissionTrend {
   doctors: number;
 }
 
+export interface ClinicHealth {
+  score: number; // 0 - 100
+  status: "Optimal" | "Good" | "Needs attention" | "Critical";
+  criticalPatients: number;
+  appointmentsToday: number;
+  upcomingThisWeek: number;
+}
+
+export interface SmartInsightItem {
+  id: string;
+  type: "critical" | "warning" | "success" | "info";
+  title: string;
+  subtitle: string;
+  href: string;
+}
+
+export interface TodayScheduleItem {
+  id: string;
+  time: string;
+  patientName: string;
+  doctorName: string;
+  room: string;
+  status: "scheduled" | "confirmed" | "completed" | "cancelled";
+}
+
+export interface LiveActivityItem {
+  id: string;
+  type: "Created" | "Updated" | "Deleted";
+  userName: string;
+  description: string;
+  timeAgo: string;
+  createdAt: string;
+}
+
 export interface DashboardData {
   stats: DashboardStats;
   specializationDistribution: SpecializationDistribution[];
@@ -71,4 +105,8 @@ export interface DashboardData {
   admissionTrend7: AdmissionTrend[];
   admissionTrend14: AdmissionTrend[];
   admissionTrend30: AdmissionTrend[];
+  clinicHealth?: ClinicHealth;
+  smartInsights?: SmartInsightItem[];
+  todaySchedule?: TodayScheduleItem[];
+  liveActivities?: LiveActivityItem[];
 }

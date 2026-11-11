@@ -10,11 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Patient } from "@/types/patient";
-import { formatDate, getInitials } from "@/lib/utils";
+import { formatDate, getInitials, generateAvatarColor, cn } from "@/lib/utils";
 import { Edit, Trash2, Stethoscope, Phone, Mail } from "lucide-react";
 
 interface PatientTableProps {
@@ -22,6 +20,33 @@ interface PatientTableProps {
   onEdit: (patient: Patient) => void;
   onDelete: (patient: Patient) => void;
   showDoctor?: boolean;
+}
+
+const CONDITION_STYLES: Record<string, { pill: string; dot: string }> = {
+  Critical: { pill: "bg-rose-950/60 text-rose-300 border-rose-800/70", dot: "bg-rose-500" },
+  Serious: { pill: "bg-amber-950/60 text-amber-300 border-amber-800/70", dot: "bg-amber-400" },
+  Stable: { pill: "bg-emerald-950/60 text-emerald-300 border-emerald-800/70", dot: "bg-emerald-400" },
+  Recovering: { pill: "bg-teal-950/60 text-teal-300 border-teal-800/70", dot: "bg-teal-400" },
+  Discharged: { pill: "bg-slate-900/60 text-slate-300 border-slate-700/70", dot: "bg-slate-400" },
+  "Heart Disease": { pill: "bg-rose-950/50 text-rose-300 border-rose-800/60", dot: "bg-rose-400" },
+  Arthritis: { pill: "bg-amber-950/50 text-amber-300 border-amber-800/60", dot: "bg-amber-400" },
+  "Chronic Pain": { pill: "bg-pink-950/50 text-pink-300 border-pink-800/60", dot: "bg-pink-400" },
+  "Kidney Disease": { pill: "bg-sky-950/50 text-sky-300 border-sky-800/60", dot: "bg-sky-400" },
+  Depression: { pill: "bg-purple-950/50 text-purple-300 border-purple-800/60", dot: "bg-purple-400" },
+  Anxiety: { pill: "bg-teal-950/50 text-teal-300 border-teal-800/60", dot: "bg-teal-400" },
+  Migraine: { pill: "bg-indigo-950/50 text-indigo-300 border-indigo-800/60", dot: "bg-indigo-400" },
+  Asthma: { pill: "bg-cyan-950/50 text-cyan-300 border-cyan-800/60", dot: "bg-cyan-400" },
+  Hypertension: { pill: "bg-orange-950/50 text-orange-300 border-orange-800/60", dot: "bg-orange-400" },
+  Diabetes: { pill: "bg-emerald-950/50 text-emerald-300 border-emerald-800/60", dot: "bg-emerald-400" },
+};
+
+function getConditionStyle(condition: string) {
+  return (
+    CONDITION_STYLES[condition] || {
+      pill: "bg-muted/50 text-muted-foreground border-border/60",
+      dot: "bg-muted-foreground",
+    }
+  );
 }
 
 export function PatientTable({
@@ -77,11 +102,14 @@ export function PatientTable({
                   {/* Patient Name & Details */}
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9 border border-border">
-                        <AvatarFallback className="bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 font-semibold text-xs">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div
+                        className={cn(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold shadow-sm",
+                          generateAvatarColor(patient.name)
+                        )}
+                      >
+                        {initials}
+                      </div>
                       <div className="flex flex-col">
                         <span className="font-semibold text-foreground">
                           {patient.name}
@@ -112,14 +140,22 @@ export function PatientTable({
                     </div>
                   </TableCell>
 
-                  {/* Medical Condition */}
+                  {/* Medical Condition with colorful pill & dot matching Image 3 */}
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="font-medium text-xs bg-muted/50 border-primary/20 text-foreground"
-                    >
-                      {patient.condition}
-                    </Badge>
+                    {(() => {
+                      const style = getConditionStyle(patient.condition);
+                      return (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border shadow-sm",
+                            style.pill
+                          )}
+                        >
+                          <span className={cn("h-1.5 w-1.5 rounded-full", style.dot)} />
+                          {patient.condition}
+                        </span>
+                      );
+                    })()}
                   </TableCell>
 
                   {/* Attending Doctor */}

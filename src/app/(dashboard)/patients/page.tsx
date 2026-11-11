@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   usePatients,
   useCreatePatient,
@@ -28,14 +29,31 @@ import { CreatePatientInput } from "@/lib/validations";
 import { Plus, Users } from "lucide-react";
 
 export default function PatientsPage() {
-  const [filters, setFilters] = useState<FilterType>({
-    page: 1,
-    limit: 10,
-    search: "",
-    condition: undefined,
-    startDate: undefined,
-    endDate: undefined,
+  const searchParams = useSearchParams();
+  const initialCondition = searchParams.get("condition");
+
+  const [filters, setFilters] = useState<FilterType>(() => {
+    let cond = undefined;
+    if (initialCondition) {
+      cond = initialCondition.charAt(0).toUpperCase() + initialCondition.slice(1).toLowerCase();
+    }
+    return {
+      page: 1,
+      limit: 10,
+      search: "",
+      condition: cond,
+      startDate: undefined,
+      endDate: undefined,
+    };
   });
+
+  useEffect(() => {
+    const c = searchParams.get("condition");
+    if (c) {
+      const formatted = c.charAt(0).toUpperCase() + c.slice(1).toLowerCase();
+      setFilters((prev) => ({ ...prev, condition: formatted, page: 1 }));
+    }
+  }, [searchParams]);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
