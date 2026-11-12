@@ -1,6 +1,8 @@
 import { removeTokenCookie } from "@/lib/auth";
 import { successResponse, errorResponse } from "@/lib/api-response";
 
+export const dynamic = "force-dynamic";
+
 export async function POST() {
   try {
     await removeTokenCookie();

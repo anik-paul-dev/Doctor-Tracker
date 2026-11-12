@@ -9,6 +9,7 @@ import {
 } from "@/hooks/use-doctors";
 import { DoctorFilters } from "@/components/doctors/doctor-filters";
 import { DoctorTable } from "@/components/doctors/doctor-table";
+import { DoctorCards } from "@/components/doctors/doctor-cards";
 import { DoctorForm } from "@/components/doctors/doctor-form";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
@@ -24,18 +25,24 @@ import {
 import { Button } from "@/components/ui/button";
 import { Doctor, DoctorFilters as FilterType } from "@/types/doctor";
 import { CreateDoctorInput } from "@/lib/validations";
+import { exportToCsv } from "@/lib/export";
+import { formatDate } from "@/lib/utils";
 import { Plus, Stethoscope } from "lucide-react";
+import { toast } from "sonner";
 
 export default function DoctorsPage() {
   const [filters, setFilters] = useState<FilterType>({
     page: 1,
-    limit: 10,
+    limit: 12,
     search: "",
     specialization: undefined,
     startDate: undefined,
     endDate: undefined,
+    sortBy: "createdAt",
+    sortOrder: "desc",
   });
 
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
   const [deletingDoctor, setDeletingDoctor] = useState<Doctor | null>(null);
@@ -52,12 +59,48 @@ export default function DoctorsPage() {
   const handleResetFilters = () => {
     setFilters({
       page: 1,
-      limit: 10,
+      limit: 12,
       search: "",
       specialization: undefined,
       startDate: undefined,
       endDate: undefined,
+      sortBy: "createdAt",
+      sortOrder: "desc",
     });
+  };
+
+  const handleExport = () => {
+    const list = data?.doctors || [];
+    if (list.length === 0) {
+      toast.error("No doctors to export");
+      return;
+    }
+
+    const exportData = list.map((doc) => ({
+      name: doc.name,
+      email: doc.email,
+      specialization: doc.specialization,
+      hospital: doc.hospital,
+      phone: doc.phone,
+      patients: doc.patientCount ?? 0,
+      addedDate: formatDate(doc.createdAt),
+    }));
+
+    exportToCsv(
+      `doctors_export_${new Date().toISOString().slice(0, 10)}`,
+      exportData,
+      [
+        { key: "name", label: "Doctor Name" },
+        { key: "email", label: "Email" },
+        { key: "specialization", label: "Specialization" },
+        { key: "hospital", label: "Hospital" },
+        { key: "phone", label: "Phone" },
+        { key: "patients", label: "Patients Count" },
+        { key: "addedDate", label: "Date Added" },
+      ]
+    );
+
+    toast.success(`Exported ${list.length} doctors to CSV`);
   };
 
   const handleCreateSubmit = async (formData: CreateDoctorInput) => {
@@ -82,17 +125,18 @@ export default function DoctorsPage() {
 
   const doctors = data?.doctors || [];
   const pagination = data?.pagination;
+  const totalDoctors = pagination?.total ?? doctors.length;
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/* Page Header matching Image 1 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b">
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            Doctor Management
+            Doctors
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Add practitioners, manage hospital affiliations, and monitor active caseloads
+            Manage physicians and their patient rosters.
           </p>
         </div>
 
@@ -100,19 +144,23 @@ export default function DoctorsPage() {
           onClick={() => setCreateDialogOpen(true)}
           className="h-10 text-sm font-semibold shadow-sm"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Doctor
+          <Plus className="h-4 w-4 mr-1.5" />
+          Add doctor
         </Button>
       </div>
 
-      {/* Filter and Search Bar */}
+      {/* Filter and Search Bar matching Image 1 & 2 */}
       <DoctorFilters
         filters={filters}
         onFilterChange={handleFilterChange}
         onReset={handleResetFilters}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        totalDoctors={totalDoctors}
+        onExport={handleExport}
       />
 
-      {/* Table / Loading / Empty States */}
+      {/* Table or Cards / Loading / Empty States */}
       {isLoading ? (
         <TableSkeleton rows={8} cols={7} />
       ) : doctors.length === 0 ? (
@@ -132,12 +180,20 @@ export default function DoctorsPage() {
           }
         />
       ) : (
-        <div className="space-y-2">
-          <DoctorTable
-            doctors={doctors}
-            onEdit={(doc) => setEditingDoctor(doc)}
-            onDelete={(doc) => setDeletingDoctor(doc)}
-          />
+        <div className="space-y-3">
+          {viewMode === "table" ? (
+            <DoctorTable
+              doctors={doctors}
+              onEdit={(doc) => setEditingDoctor(doc)}
+              onDelete={(doc) => setDeletingDoctor(doc)}
+            />
+          ) : (
+            <DoctorCards
+              doctors={doctors}
+              onEdit={(doc) => setEditingDoctor(doc)}
+              onDelete={(doc) => setDeletingDoctor(doc)}
+            />
+          )}
 
           {pagination && pagination.totalPages > 1 && (
             <DataTablePagination
@@ -204,4 +260,3 @@ export default function DoctorsPage() {
     </div>
   );
 }
-

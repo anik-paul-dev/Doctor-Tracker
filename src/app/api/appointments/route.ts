@@ -10,6 +10,8 @@ import {
 import { appointmentQuerySchema, createAppointmentSchema } from "@/lib/validations";
 import * as appointmentService from "@/services/appointment.service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     await connectDB();

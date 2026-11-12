@@ -26,7 +26,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Patient, PatientFilters as FilterType } from "@/types/patient";
 import { CreatePatientInput } from "@/lib/validations";
+import { exportToCsv } from "@/lib/export";
+import { formatDate } from "@/lib/utils";
 import { Plus, Users } from "lucide-react";
+import { toast } from "sonner";
 
 export default function PatientsPage() {
   const searchParams = useSearchParams();
@@ -42,8 +45,11 @@ export default function PatientsPage() {
       limit: 10,
       search: "",
       condition: cond,
+      doctorId: undefined,
       startDate: undefined,
       endDate: undefined,
+      sortBy: "createdAt",
+      sortOrder: "desc",
     };
   });
 
@@ -58,6 +64,7 @@ export default function PatientsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [deletingPatient, setDeletingPatient] = useState<Patient | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const { data, isLoading } = usePatients(filters);
   const { data: doctorsData } = useDoctors({ limit: 100 });
@@ -75,9 +82,75 @@ export default function PatientsPage() {
       limit: 10,
       search: "",
       condition: undefined,
+      doctorId: undefined,
       startDate: undefined,
       endDate: undefined,
+      sortBy: "createdAt",
+      sortOrder: "desc",
     });
+  };
+
+  const handleSelectToggle = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllToggle = () => {
+    const list = data?.patients || [];
+    if (selectedIds.length === list.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(list.map((p) => p._id));
+    }
+  };
+
+  const handleExport = () => {
+    const allPatients = data?.patients || [];
+    if (allPatients.length === 0) {
+      toast.error("No patients to export");
+      return;
+    }
+
+    const targetList =
+      selectedIds.length > 0
+        ? allPatients.filter((p) => selectedIds.includes(p._id))
+        : allPatients;
+
+    const exportData = targetList.map((p) => {
+      const doc =
+        typeof p.doctorId === "object" && p.doctorId !== null ? p.doctorId : null;
+
+      return {
+        name: p.name,
+        age: p.age,
+        gender: p.gender,
+        condition: p.condition,
+        doctor: doc?.name || "Unassigned",
+        doctorSpecialization: doc?.specialization || "General",
+        email: p.email || "",
+        phone: p.phone,
+        admittedDate: formatDate(p.createdAt),
+      };
+    });
+
+    exportToCsv(
+      `patients_export_${new Date().toISOString().slice(0, 10)}`,
+      exportData,
+      [
+        { key: "name", label: "Patient Name" },
+        { key: "age", label: "Age" },
+        { key: "gender", label: "Gender" },
+        { key: "condition", label: "Condition" },
+        { key: "doctor", label: "Doctor" },
+        { key: "doctorSpecialization", label: "Specialization" },
+        { key: "email", label: "Email" },
+        { key: "phone", label: "Phone" },
+        { key: "admittedDate", label: "Admitted Date" },
+      ]
+    );
+
+    toast.success(`Exported ${targetList.length} patients to CSV`);
   };
 
   const handleCreateSubmit = async (formData: CreatePatientInput) => {
@@ -103,17 +176,18 @@ export default function PatientsPage() {
   const patients = data?.patients || [];
   const pagination = data?.pagination;
   const availableDoctors = doctorsData?.doctors || [];
+  const totalPatients = pagination?.total ?? patients.length;
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/* Page Header matching Image 3 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b">
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            Patient Management
+            Patients
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Complete hospital-wide patient directory with diagnosis categorization and clinician linkages
+            Every patient across all doctors — register, update or discharge records.
           </p>
         </div>
 
@@ -127,16 +201,19 @@ export default function PatientsPage() {
               : undefined
           }
         >
-          <Plus className="h-4 w-4 mr-2" />
-          Register Patient
+          <Plus className="h-4 w-4 mr-1.5" />
+          Register patient
         </Button>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter Bar matching Image 3 & 4 */}
       <PatientFilters
         filters={filters}
         onFilterChange={handleFilterChange}
         onReset={handleResetFilters}
+        doctors={availableDoctors}
+        totalPatients={totalPatients}
+        onExport={handleExport}
       />
 
       {/* Patients Table / Loading / Empty State */}
@@ -161,10 +238,13 @@ export default function PatientsPage() {
           }
         />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <PatientTable
             patients={patients}
             showDoctor={true}
+            selectedIds={selectedIds}
+            onSelectToggle={handleSelectToggle}
+            onSelectAllToggle={handleSelectAllToggle}
             onEdit={(patient) => setEditingPatient(patient)}
             onDelete={(patient) => setDeletingPatient(patient)}
           />
@@ -236,4 +316,3 @@ export default function PatientsPage() {
     </div>
   );
 }
-

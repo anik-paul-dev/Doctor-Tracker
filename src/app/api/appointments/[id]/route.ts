@@ -11,8 +11,10 @@ import {
 import { updateAppointmentSchema } from "@/lib/validations";
 import * as appointmentService from "@/services/appointment.service";
 
+export const dynamic = "force-dynamic";
+
 interface RouteParams {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
@@ -21,7 +23,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const currentUser = await getCurrentUser();
     if (!currentUser) return unauthorizedError();
 
-    const { id } = await params;
+    const { id } = params;
     const appointment = await appointmentService.getAppointmentById(id);
     if (!appointment) return notFoundError("Appointment not found");
 
@@ -38,7 +40,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const currentUser = await getCurrentUser();
     if (!currentUser) return unauthorizedError();
 
-    const { id } = await params;
+    const { id } = params;
     const body = await request.json();
     const parsed = updateAppointmentSchema.safeParse(body);
     if (!parsed.success) {
@@ -65,7 +67,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     const currentUser = await getCurrentUser();
     if (!currentUser) return unauthorizedError();
 
-    const { id } = await params;
+    const { id } = params;
     const deleted = await appointmentService.deleteAppointment(
       id,
       currentUser.name || "Alex Morgan"

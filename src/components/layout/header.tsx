@@ -3,7 +3,7 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Menu, Moon, Sun, Search } from "lucide-react";
+import { Menu, Moon, Sun, Search, Bell, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "./user-menu";
 import { CommandSearch } from "@/components/shared/command-search";
@@ -19,11 +19,13 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
   const getPageTitle = () => {
     if (pathname === "/") return "Dashboard";
     if (pathname === "/appointments") return "Appointments";
-    if (pathname === "/doctors") return "Doctors Management";
+    if (pathname === "/doctors") return "Doctors";
     if (pathname.startsWith("/doctors/")) return "Doctor Profile";
-    if (pathname === "/patients") return "Patients Directory";
-    return "Portal";
+    if (pathname === "/patients") return "Patients";
+    return "Dashboard";
   };
+
+  const pageTitle = getPageTitle();
 
   return (
     <header className="h-16 border-b bg-card/80 backdrop-blur-md sticky top-0 z-20 flex items-center justify-between px-4 sm:px-6">
@@ -37,9 +39,13 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle navigation menu</span>
         </Button>
-        <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
-          {getPageTitle()}
-        </h1>
+
+        {/* Breadcrumb matching Image 1 & 3: Portal > Page */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+          <span className="hover:text-foreground transition-colors cursor-default">Portal</span>
+          <ChevronRight className="h-3 w-3 text-muted-foreground/60" />
+          <span className="text-foreground font-semibold">{pageTitle}</span>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
@@ -56,6 +62,22 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
             Ctrl K
           </kbd>
         </button>
+
+        {/* Notification Bell with Badge matching Image 1 & 3 */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground relative"
+            title="Notifications"
+          >
+            <Bell className="h-4 w-4" />
+            <span className="sr-only">Notifications</span>
+          </Button>
+          <span className="pointer-events-none absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white shadow-2xs">
+            8
+          </span>
+        </div>
 
         {/* Theme Toggle */}
         <Button
@@ -79,4 +101,3 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
     </header>
   );
 }
-
