@@ -41,3 +41,4 @@ export function exportToCsv<T extends Record<string, unknown>>(
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
