@@ -7,13 +7,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await connectDB();
-
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       await removeTokenCookie();
       return unauthorizedError();
     }
+
+    // Avoid a database round trip for anonymous page loads. This endpoint is
+    // called by AuthProvider on every visit, including the public login page.
+    await connectDB();
 
     const user = await authService.getUserById(currentUser.userId);
     if (!user) {

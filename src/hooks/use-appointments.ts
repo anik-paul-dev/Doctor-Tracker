@@ -34,7 +34,10 @@ export function useAppointments(filters: AppointmentFilters = {}) {
         throw new Error("Failed to fetch appointments");
       }
       const data = await res.json();
-      return data.data;
+      return {
+        appointments: data.data,
+        pagination: data.pagination,
+      };
     },
   });
 }

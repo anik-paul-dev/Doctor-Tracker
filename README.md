@@ -55,6 +55,7 @@ Follow these steps to set up and run the Doctor Tracker full-stack application o
    pnpm seed
    # or: npx tsx src/scripts/seed.ts
    ```
+   The seed script uses a published demo credential, so use it only with disposable interview data. For first-account registration on an empty database, temporarily set `ADMIN_REGISTRATION_ENABLED=true`, register the first account, then set it back to `false`. Registration is disabled by default and closes once an account exists.
 
 5. **Start the Development Server:**
    ```bash
@@ -99,7 +100,7 @@ Doctor Tracker employs a **Full-Stack Monorepo Architecture** leveraging Next.js
 │                                                                        │
 │   Next.js Edge/Node Route Handlers (/api/*)                            │
 │   ┌────────────────────────────────────────────────────────────────┐   │
-│   │ Security Middleware: JWT Verification (httpOnly Cookies)       │   │
+│   │ API Route Handlers: JWT Verification (httpOnly Cookies)        │   │
 │   │ Input Validation: Zod Type-Safe Schema Guard                   │   │
 │   │ Standardized Envelope: { success, data, pagination, error }   │   │
 │   └───────────────────────────────┬────────────────────────────────┘   │
@@ -127,9 +128,9 @@ Doctor Tracker employs a **Full-Stack Monorepo Architecture** leveraging Next.js
 ```
 
 ### Data Flow Breakdown
-1. **Authentication Flow**: User submits credentials $\rightarrow$ `POST /api/auth/login` validates schema $\rightarrow$ compares bcrypt salt hash $\rightarrow$ generates signed JWT $\rightarrow$ attaches `httpOnly`, `SameSite=Lax` cookie $\rightarrow$ client context stores profile $\rightarrow$ middleware verifies session cookie on subsequent page transitions.
+1. **Authentication Flow**: User submits credentials $\rightarrow$ `POST /api/auth/login` validates schema $\rightarrow$ compares bcrypt password hash $\rightarrow$ generates signed JWT $\rightarrow$ sets an `httpOnly`, `SameSite=Lax` cookie $\rightarrow$ API route handlers verify the signature before data access. Middleware checks cookie presence for routing; it is not the API authorization boundary.
 2. **Read/Filter Flow**: UI input updates search state $\rightarrow$ 300ms debounce hook triggers $\rightarrow$ TanStack Query issues GET request with query params $\rightarrow$ API Handler runs optimized MongoDB queries $\rightarrow$ returns standardized JSON payload $\rightarrow$ component renders with zero layout shift.
-3. **Mutation Flow**: Modal form submits $\rightarrow$ client validates Zod schema $\rightarrow$ TanStack mutation dispatches $\rightarrow$ backend service checks entity referential integrity (e.g., auto-updates `patientCount` on the doctor document atomically) $\rightarrow$ cache invalidates $\rightarrow$ Sonner toast displays confirmation.
+3. **Mutation Flow**: Modal form submits $\rightarrow$ client validates Zod schema $\rightarrow$ TanStack mutation dispatches $\rightarrow$ backend route authenticates and validates again $\rightarrow$ service applies database writes and updates related records/counters $\rightarrow$ cache invalidates $\rightarrow$ Sonner toast displays confirmation.
 
 ---
 

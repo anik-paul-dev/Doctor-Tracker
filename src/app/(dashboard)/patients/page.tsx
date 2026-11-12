@@ -91,17 +91,17 @@ export default function PatientsPage() {
   };
 
   const handleSelectToggle = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    setSelectedIds((previous) =>
+      previous.includes(id) ? previous.filter((selectedId) => selectedId !== id) : [...previous, id]
     );
   };
 
   const handleSelectAllToggle = () => {
-    const list = data?.patients || [];
-    if (selectedIds.length === list.length) {
-      setSelectedIds([]);
+    const pagePatients = data?.patients || [];
+    if (pagePatients.length > 0 && pagePatients.every((patient) => selectedIds.includes(patient._id))) {
+      setSelectedIds((previous) => previous.filter((id) => !pagePatients.some((patient) => patient._id === id)));
     } else {
-      setSelectedIds(list.map((p) => p._id));
+      setSelectedIds((previous) => Array.from(new Set(previous.concat(pagePatients.map((patient) => patient._id)))));
     }
   };
 
@@ -112,11 +112,9 @@ export default function PatientsPage() {
       return;
     }
 
-    const targetList =
-      selectedIds.length > 0
-        ? allPatients.filter((p) => selectedIds.includes(p._id))
-        : allPatients;
-
+    const targetList = selectedIds.length > 0
+      ? allPatients.filter((patient) => selectedIds.includes(patient._id))
+      : allPatients;
     const exportData = targetList.map((p) => {
       const doc =
         typeof p.doctorId === "object" && p.doctorId !== null ? p.doctorId : null;
@@ -127,7 +125,7 @@ export default function PatientsPage() {
         gender: p.gender,
         condition: p.condition,
         doctor: doc?.name || "Unassigned",
-        doctorSpecialization: doc?.specialization || "General",
+        doctorSpecialization: doc?.specialization || "",
         email: p.email || "",
         phone: p.phone,
         admittedDate: formatDate(p.createdAt),

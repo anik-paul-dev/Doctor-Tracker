@@ -4,6 +4,7 @@ import Patient from "@/models/Patient";
 import Doctor from "@/models/Doctor";
 import Activity from "@/models/Activity";
 import { AppointmentQuery, CreateAppointmentInput, UpdateAppointmentInput } from "@/lib/validations";
+import mongoose from "mongoose";
 
 interface RawAppointment {
   _id: unknown;
@@ -65,7 +66,8 @@ export async function getAppointments(query: AppointmentQuery) {
   }
 
   if (search) {
-    const searchRegex = new RegExp(search, "i");
+    const escapedSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchRegex = new RegExp(escapedSearch, "i");
     // Find matching doctors or patients
     const [matchingDoctors, matchingPatients] = await Promise.all([
       Doctor.find({ name: searchRegex }).select("_id").lean(),
@@ -112,10 +114,10 @@ export async function getAppointments(query: AppointmentQuery) {
         _id: String(a._id),
         patientId: p?._id ? String(p._id) : String(a.patientId),
         doctorId: d?._id ? String(d._id) : String(a.doctorId),
-        patientName: p?.name || "Unknown Patient",
-        patientCondition: p?.condition || "Stable",
-        doctorName: d?.name || "Unknown Doctor",
-        doctorSpecialization: d?.specialization || "General Practice",
+        patientName: p?.name || "",
+        patientCondition: p?.condition || "",
+        doctorName: d?.name || "",
+        doctorSpecialization: d?.specialization || "",
         date: a.date,
         time: a.time,
         duration: a.duration,
@@ -140,6 +142,7 @@ export async function getAppointments(query: AppointmentQuery) {
 
 export async function getAppointmentById(id: string) {
   await connectDB();
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
   const appointment = (await Appointment.findById(id)
     .populate("patientId", "name condition phone email")
     .populate("doctorId", "name specialization hospital")
@@ -154,10 +157,10 @@ export async function getAppointmentById(id: string) {
     _id: String(appointment._id),
     patientId: p?._id ? String(p._id) : String(appointment.patientId),
     doctorId: d?._id ? String(d._id) : String(appointment.doctorId),
-    patientName: p?.name || "Unknown Patient",
-    patientCondition: p?.condition || "Stable",
-    doctorName: d?.name || "Unknown Doctor",
-    doctorSpecialization: d?.specialization || "General Practice",
+    patientName: p?.name || "",
+    patientCondition: p?.condition || "",
+    doctorName: d?.name || "",
+    doctorSpecialization: d?.specialization || "",
     date: appointment.date,
     time: appointment.time,
     duration: appointment.duration,
@@ -170,8 +173,16 @@ export async function getAppointmentById(id: string) {
   };
 }
 
-export async function createAppointment(data: CreateAppointmentInput, userName: string = "Alex Morgan") {
+export async function createAppointment(data: CreateAppointmentInput, userName: string) {
   await connectDB();
+
+  const [linkedPatient, linkedDoctor] = await Promise.all([
+    Patient.findById(data.patientId).select("doctorId").lean() as unknown as Promise<{ doctorId: unknown } | null>,
+    Doctor.exists({ _id: data.doctorId }),
+  ]);
+  if (!linkedPatient || !linkedDoctor || String(linkedPatient.doctorId) !== data.doctorId) {
+    throw new Error("Patient must belong to the selected doctor");
+  }
 
   const appointment = await Appointment.create(data);
 
@@ -195,10 +206,29 @@ export async function createAppointment(data: CreateAppointmentInput, userName: 
   return getAppointmentById(String(appointment._id));
 }
 
-export async function updateAppointment(id: string, data: UpdateAppointmentInput, userName: string = "Alex Morgan") {
+export async function updateAppointment(id: string, data: UpdateAppointmentInput, userName: string) {
   await connectDB();
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
 
-  const updated = (await Appointment.findByIdAndUpdate(id, data, { new: true })) as unknown as RawAppointment | null;
+  if (data.patientId || data.doctorId) {
+    const existing = await Appointment.findById(id).select("patientId doctorId").lean() as unknown as {
+      patientId: mongoose.Types.ObjectId;
+      doctorId: mongoose.Types.ObjectId;
+    } | null;
+    if (!existing) return null;
+
+    const patientId = data.patientId || String(existing.patientId);
+    const doctorId = data.doctorId || String(existing.doctorId);
+    const [patient, doctor] = await Promise.all([
+      Patient.findById(patientId).select("doctorId").lean() as unknown as Promise<{ doctorId: mongoose.Types.ObjectId } | null>,
+      Doctor.exists({ _id: doctorId }),
+    ]);
+    if (!patient || !doctor || String(patient.doctorId) !== doctorId) {
+      throw new Error("Patient must belong to the selected doctor");
+    }
+  }
+
+  const updated = (await Appointment.findByIdAndUpdate(id, data, { new: true, runValidators: true })) as unknown as RawAppointment | null;
   if (!updated) return null;
 
   const [patient, doctor] = (await Promise.all([
@@ -226,8 +256,9 @@ export async function updateAppointment(id: string, data: UpdateAppointmentInput
   return getAppointmentById(id);
 }
 
-export async function deleteAppointment(id: string, userName: string = "Alex Morgan") {
+export async function deleteAppointment(id: string, userName: string) {
   await connectDB();
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
 
   const appointment = (await Appointment.findById(id)) as unknown as RawAppointment | null;
   if (!appointment) return null;
@@ -269,8 +300,8 @@ export async function getTodayAppointments() {
     return {
       id: String(a._id),
       time: a.time,
-      patientName: p?.name || "Unknown Patient",
-      doctorName: d?.name || "Unknown Doctor",
+      patientName: p?.name || "",
+      doctorName: d?.name || "",
       room: a.room,
       status: a.status as AppointmentStatus,
     };

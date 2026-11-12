@@ -453,7 +453,7 @@ export function CommandSearch() {
           <span>
             Signed in as{" "}
             <span className="font-semibold text-foreground">
-              {user?.name || "Alex Morgan"}
+              {user?.name || "Admin"}
             </span>
           </span>
           <div className="flex items-center gap-3 font-mono text-[11px]">

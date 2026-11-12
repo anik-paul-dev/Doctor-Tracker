@@ -57,7 +57,7 @@ export async function PUT(
       return validationError("Validation failed", parsed.error.flatten().fieldErrors);
     }
 
-    const patient = await patientService.updatePatient(id, parsed.data);
+    const patient = await patientService.updatePatient(id, parsed.data, currentUser.name);
 
     if (!patient) {
       return notFoundError("Patient not found");
@@ -83,7 +83,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const patient = await patientService.deletePatient(id);
+    const patient = await patientService.deletePatient(id, currentUser.name);
 
     if (!patient) {
       return notFoundError("Patient not found");

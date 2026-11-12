@@ -118,7 +118,7 @@ export async function getPatientsPerDoctor(): Promise<PatientsPerDoctor[]> {
   return result.map((doc) => ({
     doctorName: doc.name,
     patientCount: doc.patientCount,
-    specialization: doc.specialization || "General",
+    specialization: doc.specialization || "",
   }));
 }
 
@@ -297,86 +297,47 @@ export async function getGenderDistribution(): Promise<{
   return { distribution: genderResult, averageAge };
 }
 
-export async function getAdmissionTrend(days: number): Promise<AdmissionTrend[]> {
+export async function getAdmissionTrends(): Promise<Record<7 | 14 | 30, AdmissionTrend[]>> {
   await connectDB();
-
-  // Find the latest activity date to anchor realistic window for demo / seeded databases
-  const latestPatient = (await Patient.findOne()
-    .sort({ createdAt: -1 })
-    .select("createdAt")
-    .lean()) as { createdAt?: Date } | null;
-
-  const now = new Date();
-  const latestDate = latestPatient?.createdAt ? new Date(latestPatient.createdAt) : now;
-
-  // Use the latest date if recent records are from past days (e.g., seeded data)
-  // but if real records were created today or recently, anchor to now
-  const anchorDate =
-    now.getTime() - latestDate.getTime() > days * 24 * 60 * 60 * 1000
-      ? new Date(latestDate)
-      : now;
-
-  const startDate = new Date(anchorDate);
-  startDate.setDate(startDate.getDate() - (days - 1));
-  startDate.setHours(0, 0, 0, 0);
+  const endDate = new Date();
+  endDate.setUTCHours(23, 59, 59, 999);
+  const startDate = new Date(endDate);
+  startDate.setUTCDate(startDate.getUTCDate() - 29);
+  startDate.setUTCHours(0, 0, 0, 0);
 
   const [patientTrend, doctorTrend] = await Promise.all([
     Patient.aggregate([
-      { $match: { createdAt: { $gte: startDate } } },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-          },
-          count: { $sum: 1 },
-        },
-      },
+      { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
       { $sort: { _id: 1 } },
     ]),
     Doctor.aggregate([
-      { $match: { createdAt: { $gte: startDate } } },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-          },
-          count: { $sum: 1 },
-        },
-      },
+      { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
       { $sort: { _id: 1 } },
     ]),
   ]);
 
-  // Build map of all days in range
   const dayMap = new Map<string, { patients: number; doctors: number }>();
-  for (let i = 0; i < days; i++) {
-    const d = new Date(startDate);
-    d.setDate(d.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
-    dayMap.set(key, { patients: 0, doctors: 0 });
+  for (let i = 0; i < 30; i++) {
+    const day = new Date(startDate);
+    day.setUTCDate(day.getUTCDate() + i);
+    dayMap.set(day.toISOString().slice(0, 10), { patients: 0, doctors: 0 });
   }
-
   for (const entry of patientTrend) {
-    const existing = dayMap.get(entry._id);
-    if (existing) existing.patients = entry.count;
+    const bucket = dayMap.get(entry._id);
+    if (bucket) bucket.patients = entry.count;
   }
   for (const entry of doctorTrend) {
-    const existing = dayMap.get(entry._id);
-    if (existing) existing.doctors = entry.count;
+    const bucket = dayMap.get(entry._id);
+    if (bucket) bucket.doctors = entry.count;
   }
 
-  const result: AdmissionTrend[] = Array.from(dayMap.entries()).map(
-    ([dateStr, counts]) => {
-      const d = new Date(dateStr + "T00:00:00");
-      const label = d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "2-digit",
-      });
-      return { date: label, patients: counts.patients, doctors: counts.doctors };
-    }
-  );
-
-  return result;
+  const result = Array.from(dayMap.entries()).map(([dateStr, counts]) => ({
+    date: new Date(`${dateStr}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "2-digit", timeZone: "UTC" }),
+    ...counts,
+  }));
+  return { 7: result.slice(-7), 14: result.slice(-14), 30: result };
 }
 
 export async function getRecentAdmissions(
@@ -406,7 +367,7 @@ export async function getRecentAdmissions(
       .join("")
       .toUpperCase()
       .slice(0, 2),
-    doctorName: p.doctorId?.name ? p.doctorId.name.replace(/^Dr\.\s*/i, "") : "Unknown",
+    doctorName: p.doctorId?.name ? p.doctorId.name.replace(/^Dr\.\s*/i, "") : "Doctor record unavailable",
     condition: p.condition,
     createdAt: p.createdAt.toISOString(),
   }));
@@ -419,58 +380,75 @@ export async function getClinicHealth(): Promise<ClinicHealth> {
   nextWeek.setDate(nextWeek.getDate() + 7);
   const nextWeekStr = nextWeek.toISOString().slice(0, 10);
 
-  const [criticalCount, todayAppts, upcomingAppts] = await Promise.all([
+  const recentStart = new Date();
+  recentStart.setDate(recentStart.getDate() - 7);
+  const [criticalCount, todayAppts, upcomingAppts, recentAppointments, cancelledAppointments] = await Promise.all([
     Patient.countDocuments({ condition: { $regex: /^critical$/i } }),
     Appointment.countDocuments({ date: today }),
-    Appointment.countDocuments({ date: { $gt: today, $lte: nextWeekStr } }),
+    Appointment.countDocuments({ date: { $gt: today, $lte: nextWeekStr }, status: { $nin: ["cancelled", "completed"] } }),
+    Appointment.countDocuments({ createdAt: { $gte: recentStart } }),
+    Appointment.countDocuments({ createdAt: { $gte: recentStart }, status: "cancelled" }),
   ]);
 
-  const crit = criticalCount > 0 ? criticalCount : 8;
-  const tAppts = todayAppts > 0 ? todayAppts : 5;
-  const upAppts = upcomingAppts > 0 ? upcomingAppts : 17;
-
-  // Composite score across acuity, workload and cancellations
-  const score = 61; // calibrated to 61 as shown in user's image
+  const score = recentAppointments === 0
+    ? null
+    : Math.max(
+        0,
+        100 - Math.min(60, criticalCount * 8) - Math.round((cancelledAppointments / recentAppointments) * 30)
+      );
+  const status: ClinicHealth["status"] = score === null
+    ? "No data"
+    : score >= 90
+      ? "Optimal"
+      : score >= 75
+        ? "Good"
+        : score >= 50
+          ? "Needs attention"
+          : "Critical";
 
   return {
     score,
-    status: "Needs attention",
-    criticalPatients: crit,
-    appointmentsToday: tAppts,
-    upcomingThisWeek: upAppts,
+    status,
+    criticalPatients: criticalCount,
+    appointmentsToday: todayAppts,
+    upcomingThisWeek: upcomingAppts,
   };
 }
 
 export async function getSmartInsights(): Promise<SmartInsightItem[]> {
   await connectDB();
-  const criticalCount = await Patient.countDocuments({
-    condition: { $regex: /^critical$/i },
-  });
-  const crit = criticalCount > 0 ? criticalCount : 8;
+  const now = new Date();
+  const currentPeriodStart = new Date(now);
+  currentPeriodStart.setDate(currentPeriodStart.getDate() - 7);
+  const previousPeriodStart = new Date(currentPeriodStart);
+  previousPeriodStart.setDate(previousPeriodStart.getDate() - 7);
+  const [criticalCount, currentAdmissions, previousAdmissions] = await Promise.all([
+    Patient.countDocuments({ condition: { $regex: /^critical$/i } }),
+    Patient.countDocuments({ createdAt: { $gte: currentPeriodStart } }),
+    Patient.countDocuments({ createdAt: { $gte: previousPeriodStart, $lt: currentPeriodStart } }),
+  ]);
 
-  return [
-    {
-      id: "insight-1",
+  const insights: SmartInsightItem[] = [];
+  if (criticalCount > 0) {
+    insights.push({
+      id: "critical-patients",
       type: "critical",
-      title: `${crit} critical patients need attention`,
-      subtitle: "Review vitals and escalate care where needed.",
+      title: `${criticalCount} critical patients need attention`,
+      subtitle: "Review patient records and follow your clinic's escalation process.",
       href: "/patients?condition=CRITICAL",
-    },
-    {
-      id: "insight-2",
-      type: "warning",
-      title: "Admission spike this week",
-      subtitle: "20 admissions vs 8 last week — staffing may need a boost.",
+    });
+  }
+  if (currentAdmissions !== previousAdmissions) {
+    const rising = currentAdmissions > previousAdmissions;
+    insights.push({
+      id: "admission-trend",
+      type: rising ? "warning" : "info",
+      title: `${currentAdmissions} patient admissions in the last 7 days`,
+      subtitle: `${rising ? "Up" : "Down"} from ${previousAdmissions} in the previous 7 days.`,
       href: "/patients",
-    },
-    {
-      id: "insight-3",
-      type: "success",
-      title: "1 discharge this week",
-      subtitle: "Great progress — beds freed up for new admissions.",
-      href: "/patients?condition=Discharged",
-    },
-  ];
+    });
+  }
+  return insights;
 }
 
 export async function getTodaySchedule(): Promise<TodayScheduleItem[]> {
@@ -483,28 +461,19 @@ export async function getTodaySchedule(): Promise<TodayScheduleItem[]> {
     .limit(8)
     .lean();
 
-  if (appts.length > 0) {
-    return appts.map((a) => {
+  return appts.map((a) => {
       const p = a.patientId as { name?: string } | null;
       const d = a.doctorId as { name?: string } | null;
+      if (!p?.name || !d?.name || !a.room) return null;
       return {
         id: String(a._id),
         time: a.time,
-        patientName: p?.name || "Patient",
-        doctorName: d?.name || "Doctor",
-        room: a.room || "Room 101",
+        patientName: p.name,
+        doctorName: d.name,
+        room: a.room,
         status: (a.status as TodayScheduleItem["status"]) || "completed",
       };
-    });
-  }
-
-  return [
-    { id: "1", time: "3:00 PM", patientName: "Lubna Das", doctorName: "Dr. Rahim Uddin", room: "Room 209", status: "completed" },
-    { id: "2", time: "4:15 PM", patientName: "Tasnim Alam", doctorName: "Dr. Rahim Uddin", room: "Room 267", status: "completed" },
-    { id: "3", time: "6:15 PM", patientName: "Omar Akter", doctorName: "Dr. Nusrat Jahan", room: "Room 309", status: "completed" },
-    { id: "4", time: "10:45 PM", patientName: "Olivia Sultana", doctorName: "Dr. Ayesha Rahman", room: "Room 275", status: "completed" },
-    { id: "5", time: "11:15 PM", patientName: "Tariq Sarker", doctorName: "Dr. Grace Okafor", room: "Room 256", status: "completed" },
-  ];
+  }).filter((item): item is TodayScheduleItem => item !== null);
 }
 
 export async function getLiveActivities(): Promise<LiveActivityItem[]> {
@@ -514,57 +483,12 @@ export async function getLiveActivities(): Promise<LiveActivityItem[]> {
     .limit(6)
     .lean();
 
-  if (activities.length > 0) {
-    return activities.map((act) => ({
+  return activities.map((act) => ({
       id: String(act._id),
       type: act.type as LiveActivityItem["type"],
       userName: act.userName,
       description: act.description,
       timeAgo: formatRelativeTime(act.createdAt),
       createdAt: act.createdAt.toISOString(),
-    }));
-  }
-
-  return [
-    {
-      id: "act-1",
-      type: "Created",
-      userName: "Alex Morgan",
-      description: "Admitted Nabil Noor (STABLE) to the portal",
-      timeAgo: "about 2 hours ago",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "act-2",
-      type: "Deleted",
-      userName: "Alex Morgan",
-      description: "Removed Nabil Noor from the portal",
-      timeAgo: "about 2 hours ago",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "act-3",
-      type: "Updated",
-      userName: "Alex Morgan",
-      description: "Updated Maya Das's record (STABLE)",
-      timeAgo: "about 2 hours ago",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "act-4",
-      type: "Updated",
-      userName: "Alex Morgan",
-      description: "Updated Nabil Noor's record (STABLE)",
-      timeAgo: "about 2 hours ago",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "act-5",
-      type: "Deleted",
-      userName: "Alex Morgan",
-      description: "Cancelled the appointment of Nabil Noor with Dr. Sajid Anwar",
-      timeAgo: "about 2 hours ago",
-      createdAt: new Date().toISOString(),
-    },
-  ];
+  }));
 }

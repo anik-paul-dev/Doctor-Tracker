@@ -21,6 +21,15 @@ export function middleware(request: NextRequest) {
   // 3. For protected API routes: if no token, return 401
   if (pathname.startsWith("/api/")) {
     if (!token) {
+      // Session discovery is part of every public page load. An empty session
+      // is a normal state, so return no content instead of a noisy 401.
+      if (pathname === "/api/auth/me") {
+        return new NextResponse(null, {
+          status: 204,
+          headers: { "Cache-Control": "no-store" },
+        });
+      }
+
       return NextResponse.json(
         {
           success: false,

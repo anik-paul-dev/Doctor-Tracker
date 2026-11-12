@@ -28,8 +28,8 @@ export default function SettingsPage() {
   const { user } = useAuth();
 
   // Profile Form state
-  const [name, setName] = useState(user?.name || "Alex Morgan");
-  const [email, setEmail] = useState(user?.email || "admin@doctortracker.com");
+  const [name, setName] = useState(user?.name || "");
+  const [email, setEmail] = useState(user?.email || "");
   const [profileLoading, setProfileLoading] = useState(false);
 
   // Password Form state
@@ -126,7 +126,7 @@ export default function SettingsPage() {
     }, 400);
   };
 
-  const initials = getInitials(user?.name || name || "Alex Morgan");
+  const initials = getInitials(user?.name || name || "A");
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">

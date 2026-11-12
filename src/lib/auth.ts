@@ -1,9 +1,6 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  "doctor-tracker-default-jwt-secret-key-development-minimum-32-chars";
 const TOKEN_NAME = "doctor-tracker-token";
 const TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 
@@ -14,14 +11,37 @@ export interface JWTPayload {
   role: string;
 }
 
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET must be configured with at least 32 characters");
+  }
+  return secret;
+}
+
 export function signToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, getJwtSecret(), {
     expiresIn: TOKEN_MAX_AGE,
+    issuer: "doctor-tracker",
+    audience: "doctor-tracker-web",
   });
 }
 
 export function verifyToken(token: string): JWTPayload {
-  return jwt.verify(token, JWT_SECRET) as JWTPayload;
+  const payload = jwt.verify(token, getJwtSecret(), {
+    algorithms: ["HS256"],
+    issuer: "doctor-tracker",
+    audience: "doctor-tracker-web",
+  });
+  if (
+    typeof payload === "string" ||
+    typeof payload.userId !== "string" ||
+    typeof payload.email !== "string" ||
+    payload.role !== "admin"
+  ) {
+    throw new Error("Invalid session");
+  }
+  return payload as JWTPayload;
 }
 
 export async function getTokenFromCookies(): Promise<string | undefined> {

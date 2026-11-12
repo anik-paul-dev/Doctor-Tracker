@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
 
     return successResponse(user, 201);
   } catch (error) {
-    if (error instanceof Error && error.message.includes("already exists")) {
-      return conflictError(error.message);
+    if (error instanceof Error && (error.message.includes("already exists") || error.message.startsWith("Registration is "))) {
+      return conflictError("Registration is unavailable");
     }
     console.error("Register error:", error);
     return errorResponse("Internal server error");

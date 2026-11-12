@@ -69,6 +69,12 @@ const AppointmentSchema = new Schema<IAppointment>(
   }
 );
 
+// Compound indexes match the schedule and doctor/patient filtered list queries.
+AppointmentSchema.index({ date: 1, time: 1 });
+AppointmentSchema.index({ doctorId: 1, date: 1, time: 1 });
+AppointmentSchema.index({ patientId: 1, date: -1 });
+AppointmentSchema.index({ status: 1, date: 1 });
+
 export default mongoose.models.Appointment ||
   mongoose.model<IAppointment>("Appointment", AppointmentSchema);
 

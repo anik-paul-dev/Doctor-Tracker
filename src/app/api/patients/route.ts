@@ -59,11 +59,10 @@ export async function POST(request: NextRequest) {
       return validationError("Validation failed", parsed.error.flatten().fieldErrors);
     }
 
-    const patient = await patientService.createPatient(parsed.data);
+    const patient = await patientService.createPatient(parsed.data, currentUser.name);
     return successResponse(patient, 201);
   } catch (error) {
     console.error("Create patient error:", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return errorResponse(message);
+    return errorResponse("Unable to create patient");
   }
 }

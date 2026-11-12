@@ -14,32 +14,6 @@ interface SmartInsightsProps {
 export function SmartInsights({ items = [] }: SmartInsightsProps) {
   const router = useRouter();
 
-  const defaultItems: SmartInsightItem[] = [
-    {
-      id: "insight-1",
-      type: "critical",
-      title: "8 critical patients need attention",
-      subtitle: "Review vitals and escalate care where needed.",
-      href: "/patients?condition=CRITICAL",
-    },
-    {
-      id: "insight-2",
-      type: "warning",
-      title: "Admission spike this week",
-      subtitle: "20 admissions vs 8 last week — staffing may need a boost.",
-      href: "/patients",
-    },
-    {
-      id: "insight-3",
-      type: "success",
-      title: "1 discharge this week",
-      subtitle: "Great progress — beds freed up for new admissions.",
-      href: "/patients?condition=Discharged",
-    },
-  ];
-
-  const list = items.length > 0 ? items : defaultItems;
-
   const getStyle = (type: SmartInsightItem["type"]) => {
     switch (type) {
       case "critical":
@@ -79,7 +53,9 @@ export function SmartInsights({ items = [] }: SmartInsightsProps) {
       </CardHeader>
 
       <CardContent className="pt-2 pb-6 space-y-3 flex-1 flex flex-col justify-center">
-        {list.map((item) => {
+        {items.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">No insights from the current records.</p>
+        ) : items.map((item) => {
           const { border, iconBg, Icon } = getStyle(item.type);
 
           return (

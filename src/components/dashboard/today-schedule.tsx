@@ -15,16 +15,6 @@ interface TodayScheduleProps {
 export function TodaySchedule({ items = [] }: TodayScheduleProps) {
   const router = useRouter();
 
-  const defaultItems: TodayScheduleItem[] = [
-    { id: "1", time: "3:00 PM", patientName: "Lubna Das", doctorName: "Dr. Rahim Uddin", room: "Room 209", status: "completed" },
-    { id: "2", time: "4:15 PM", patientName: "Tasnim Alam", doctorName: "Dr. Rahim Uddin", room: "Room 267", status: "completed" },
-    { id: "3", time: "6:15 PM", patientName: "Omar Akter", doctorName: "Dr. Nusrat Jahan", room: "Room 309", status: "completed" },
-    { id: "4", time: "10:45 PM", patientName: "Olivia Sultana", doctorName: "Dr. Ayesha Rahman", room: "Room 275", status: "completed" },
-    { id: "5", time: "11:15 PM", patientName: "Tariq Sarker", doctorName: "Dr. Grace Okafor", room: "Room 256", status: "completed" },
-  ];
-
-  const list = items.length > 0 ? items : defaultItems;
-
   const getStatusBadge = (status: TodayScheduleItem["status"]) => {
     switch (status) {
       case "completed":
@@ -66,7 +56,7 @@ export function TodaySchedule({ items = [] }: TodayScheduleProps) {
             </CardTitle>
           </div>
           <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-muted/60 text-foreground border border-border/60">
-            {list.length} today
+            {items.length} today
           </span>
         </div>
         <CardDescription className="text-xs text-muted-foreground mt-0.5">
@@ -76,7 +66,9 @@ export function TodaySchedule({ items = [] }: TodayScheduleProps) {
 
       <CardContent className="pt-1 pb-4 flex-1">
         <div className="divide-y divide-border/40">
-          {list.map((item) => {
+          {items.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No appointments scheduled for today.</p>
+          ) : items.map((item) => {
             const badge = getStatusBadge(item.status);
 
             return (

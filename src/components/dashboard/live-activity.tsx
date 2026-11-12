@@ -11,51 +11,6 @@ interface LiveActivityProps {
 }
 
 export function LiveActivity({ items = [] }: LiveActivityProps) {
-  const defaultItems: LiveActivityItem[] = [
-    {
-      id: "act-1",
-      type: "Created",
-      userName: "Alex Morgan",
-      description: "Admitted Nabil Noor (STABLE) to the portal",
-      timeAgo: "about 2 hours ago",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "act-2",
-      type: "Deleted",
-      userName: "Alex Morgan",
-      description: "Removed Nabil Noor from the portal",
-      timeAgo: "about 2 hours ago",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "act-3",
-      type: "Updated",
-      userName: "Alex Morgan",
-      description: "Updated Maya Das's record (STABLE)",
-      timeAgo: "about 2 hours ago",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "act-4",
-      type: "Updated",
-      userName: "Alex Morgan",
-      description: "Updated Nabil Noor's record (STABLE)",
-      timeAgo: "about 2 hours ago",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "act-5",
-      type: "Deleted",
-      userName: "Alex Morgan",
-      description: "Cancelled the appointment of Nabil Noor with Dr. Sajid Anwar",
-      timeAgo: "about 2 hours ago",
-      createdAt: new Date().toISOString(),
-    },
-  ];
-
-  const list = items.length > 0 ? items : defaultItems;
-
   const getTypeStyle = (type: LiveActivityItem["type"]) => {
     switch (type) {
       case "Created":
@@ -102,7 +57,9 @@ export function LiveActivity({ items = [] }: LiveActivityProps) {
 
       <CardContent className="pt-1 pb-4 flex-1">
         <div className="divide-y divide-border/40">
-          {list.map((item) => {
+          {items.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No activity recorded yet.</p>
+          ) : items.map((item) => {
             const { badge, iconBg, Icon } = getTypeStyle(item.type);
 
             return (

@@ -9,6 +9,16 @@ export async function registerUser(
 ) {
   await connectDB();
 
+  if (process.env.ADMIN_REGISTRATION_ENABLED !== "true") {
+    throw new Error("Registration is disabled");
+  }
+
+  // Registration is only available for first-time setup. Once an admin exists,
+  // an anonymous caller cannot create another account with full admin access.
+  if (await User.exists({})) {
+    throw new Error("Registration is closed");
+  }
+
   const existingUser = await User.findOne({ email: email.toLowerCase() }).lean();
   if (existingUser) {
     throw new Error("User with this email already exists");
@@ -31,7 +41,7 @@ export async function registerUser(
 export async function loginUser(email: string, password: string) {
   await connectDB();
 
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
   if (!user) {
     throw new Error("Invalid email or password");
   }
@@ -105,7 +115,7 @@ export async function changeUserPassword(
 ) {
   await connectDB();
 
-  const user = await User.findById(id);
+  const user = await User.findById(id).select("+password");
   if (!user) {
     throw new Error("User not found");
   }

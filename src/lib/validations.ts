@@ -25,7 +25,7 @@ export const updateDoctorSchema = createDoctorSchema.partial();
 
 // Patient schemas
 export const createPatientSchema = z.object({
-  doctorId: z.string().min(1, "Doctor is required"),
+  doctorId: z.string().regex(/^[a-f\d]{24}$/i, "Invalid doctor id"),
   name: z.string().min(2, "Name must be at least 2 characters").max(100),
   age: z.number().int().min(0, "Age must be positive").max(150),
   gender: z.enum(["male", "female", "other"]),
@@ -40,9 +40,9 @@ export const updatePatientSchema = createPatientSchema.omit({ doctorId: true }).
 
 // Appointment schemas
 export const createAppointmentSchema = z.object({
-  patientId: z.string().min(1, "Patient is required"),
-  doctorId: z.string().min(1, "Doctor is required"),
-  date: z.string().min(1, "Date is required"),
+  patientId: z.string().regex(/^[a-f\d]{24}$/i, "Invalid patient id"),
+  doctorId: z.string().regex(/^[a-f\d]{24}$/i, "Invalid doctor id"),
+  date: z.string().date("Date must use YYYY-MM-DD"),
   time: z.string().min(1, "Time is required"),
   duration: z.coerce.number().min(15).max(120).default(45),
   reason: z.string().min(2, "Reason is required").max(200),
@@ -57,28 +57,31 @@ export const updateAppointmentSchema = createAppointmentSchema.partial();
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
-  search: z.string().optional(),
-  sortBy: z.string().optional().default("createdAt"),
+  search: z.string().trim().max(100).optional(),
+  sortBy: z.enum(["createdAt", "name", "patientCount", "age", "date", "time"]).optional().default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  startDate: z.string().date().optional(),
+  endDate: z.string().date().optional(),
 });
 
 export const doctorQuerySchema = paginationSchema.extend({
-  specialization: z.string().optional(),
-  hospital: z.string().optional(),
+  sortBy: z.enum(["createdAt", "name", "patientCount"]).optional().default("createdAt"),
+  specialization: z.string().max(100).optional(),
+  hospital: z.string().max(200).optional(),
 });
 
 export const patientQuerySchema = paginationSchema.extend({
-  condition: z.string().optional(),
-  doctorId: z.string().optional(),
+  sortBy: z.enum(["createdAt", "name", "age"]).optional().default("createdAt"),
+  condition: z.string().max(200).optional(),
+  doctorId: z.string().regex(/^[a-f\d]{24}$/i).optional(),
 });
 
 export const appointmentQuerySchema = paginationSchema.extend({
-  status: z.string().optional(),
-  doctorId: z.string().optional(),
-  patientId: z.string().optional(),
-  date: z.string().optional(),
+  sortBy: z.enum(["createdAt", "date", "time"]).optional().default("date"),
+  status: z.enum(["all", "scheduled", "confirmed", "completed", "cancelled"]).optional(),
+  doctorId: z.string().regex(/^[a-f\d]{24}$/i).optional(),
+  patientId: z.string().regex(/^[a-f\d]{24}$/i).optional(),
+  date: z.string().date().optional(),
 });
 
 // Types

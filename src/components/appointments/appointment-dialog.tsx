@@ -68,7 +68,7 @@ export function AppointmentDialog({
       setTime(appointment.time || "06:30 PM");
       setDuration(appointment.duration || 45);
       setReason(appointment.reason || "");
-      setRoom(appointment.room || "Room 101");
+      setRoom(appointment.room || "");
       setStatus(appointment.status || "scheduled");
     } else {
       // Defaults for new appointment

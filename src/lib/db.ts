@@ -31,6 +31,11 @@ export async function connectDB(): Promise<typeof mongoose> {
     const opts = {
       bufferCommands: false,
       maxPoolSize: 10,
+      // Fail promptly when the configured MongoDB host is unreachable instead
+      // of leaving API requests (and dashboard loading states) waiting for the
+      // driver's long default server-selection timeout.
+      serverSelectionTimeoutMS: 5_000,
+      connectTimeoutMS: 5_000,
     };
 
     cached.promise = mongoose.connect(uri, opts).then((m) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Popover,
@@ -22,6 +22,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDashboardStats } from "@/hooks/use-dashboard";
 
 export interface NotificationItem {
   id: string;
@@ -34,119 +35,67 @@ export interface NotificationItem {
   category: string;
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "notif-1",
-    title: "8 Critical Patients Need Attention",
-    message: "ICU vitals require clinical review and escalation across rosters.",
-    time: "10m ago",
-    type: "critical",
-    href: "/patients?condition=Critical",
-    read: false,
-    category: "Acuity Alert",
-  },
-  {
-    id: "notif-2",
-    title: "Admission Spike This Week",
-    message: "20 admissions vs 8 last week — clinical staffing adjustment recommended.",
-    time: "35m ago",
-    type: "warning",
-    href: "/patients",
-    read: false,
-    category: "Capacity",
-  },
-  {
-    id: "notif-3",
-    title: "Upcoming Appointment at 3:00 PM",
-    message: "Lubna Das with Dr. Rahim Uddin in Room 209 (Radiology consultation).",
-    time: "1h ago",
-    type: "appointment",
-    href: "/appointments",
-    read: false,
-    category: "Schedule",
-  },
-  {
-    id: "notif-4",
-    title: "Dr. Sajid Anwar Added to Roster",
-    message: "New ENT specialist assigned to Popular Diagnostic Centre.",
-    time: "2h ago",
-    type: "info",
-    href: "/doctors",
-    read: false,
-    category: "Practitioners",
-  },
-  {
-    id: "notif-5",
-    title: "1 Discharge Processed Today",
-    message: "Bed freed up in general ward following successful stabilization.",
-    time: "3h ago",
-    type: "success",
-    href: "/patients?condition=Discharged",
-    read: false,
-    category: "Discharge",
-  },
-  {
-    id: "notif-6",
-    title: "Appointment Confirmed at 4:15 PM",
-    message: "Tasnim Alam confirmed attendance with Dr. Rahim Uddin (Room 267).",
-    time: "4h ago",
-    type: "appointment",
-    href: "/appointments",
-    read: false,
-    category: "Schedule",
-  },
-  {
-    id: "notif-7",
-    title: "Caseload Threshold Alert",
-    message: "Dr. Nusrat Jahan currently managing 8 active assigned patients.",
-    time: "5h ago",
-    type: "warning",
-    href: "/doctors",
-    read: false,
-    category: "Caseload",
-  },
-  {
-    id: "notif-8",
-    title: "Composite Clinic Health at 61/100",
-    message: "Clinical efficiency index requires review due to high acute patient ratio.",
-    time: "Today",
-    type: "critical",
-    href: "/",
-    read: false,
-    category: "Health Index",
-  },
-];
-
 export function NotificationsPopover() {
+  const { data } = useDashboardStats();
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(
-    INITIAL_NOTIFICATIONS
-  );
+  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => new Set());
   const [tab, setTab] = useState<"all" | "unread">("all");
   const router = useRouter();
+
+  const notifications = useMemo(() => {
+    const insights: NotificationItem[] = (data?.smartInsights ?? []).map((item) => ({
+      id: `insight-${item.id}`,
+      title: item.title,
+      message: item.subtitle,
+      time: "Current records",
+      type: item.type,
+      href: item.href,
+      read: readIds.has(`insight-${item.id}`),
+      category: "Insight",
+    }));
+    const appointments: NotificationItem[] = (data?.todaySchedule ?? []).map((item) => ({
+      id: `appointment-${item.id}`,
+      title: `Appointment at ${item.time}`,
+      message: `${item.patientName} with ${item.doctorName} in ${item.room}.`,
+      time: "Today",
+      type: "appointment",
+      href: "/appointments",
+      read: readIds.has(`appointment-${item.id}`),
+      category: "Schedule",
+    }));
+    const activity: NotificationItem[] = (data?.liveActivities ?? []).map((item) => ({
+      id: `activity-${item.id}`,
+      title: `${item.type} record`,
+      message: `${item.userName}: ${item.description}`,
+      time: item.timeAgo,
+      type: item.type === "Deleted" ? "warning" : item.type === "Created" ? "success" : "info",
+      href: "/",
+      read: readIds.has(`activity-${item.id}`),
+      category: "Activity",
+    }));
+    return [...insights, ...appointments, ...activity].filter((item) => !dismissedIds.has(item.id));
+  }, [data, dismissedIds, readIds]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const handleMarkAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setReadIds((previous) => new Set(Array.from(previous).concat(notifications.map((item) => item.id))));
   };
 
   const handleClearAll = () => {
-    setNotifications([]);
+    setDismissedIds((previous) => new Set(Array.from(previous).concat(notifications.map((item) => item.id))));
   };
 
   const handleNotificationClick = (item: NotificationItem) => {
-    // Mark as read
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === item.id ? { ...n, read: true } : n))
-    );
+    setReadIds((previous) => new Set(previous).add(item.id));
     setOpen(false);
     router.push(item.href);
   };
 
   const handleDismiss = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setDismissedIds((previous) => new Set(previous).add(id));
   };
 
   const filteredNotifications =
@@ -285,7 +234,7 @@ export function NotificationsPopover() {
           </div>
 
           <span className="text-[11px] text-muted-foreground">
-            Live auto-feed
+            From current records
           </span>
         </div>
 

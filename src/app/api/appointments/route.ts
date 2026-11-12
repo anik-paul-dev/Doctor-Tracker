@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import connectDB from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  paginatedResponse,
   successResponse,
   unauthorizedError,
   validationError,
@@ -30,7 +31,11 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await appointmentService.getAppointments(parsedQuery.data);
-    return successResponse(result);
+    return paginatedResponse(result.appointments, {
+      page: result.pagination.page,
+      limit: result.pagination.limit,
+      total: result.pagination.total,
+    });
   } catch (error) {
     console.error("GET /api/appointments error:", error);
     return errorResponse("Internal server error");
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     const appointment = await appointmentService.createAppointment(
       parsed.data,
-      currentUser.name || "Alex Morgan"
+      currentUser.name
     );
     return successResponse(appointment, 201);
   } catch (error) {

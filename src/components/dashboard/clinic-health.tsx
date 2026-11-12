@@ -10,15 +10,12 @@ interface ClinicHealthProps {
 }
 
 export function ClinicHealth({ data }: ClinicHealthProps) {
-  const score = data?.score ?? 61;
-  const status = data?.status ?? "Needs attention";
-  const critical = data?.criticalPatients ?? 8;
-  const todayAppts = data?.appointmentsToday ?? 5;
-  const upcomingThisWeek = data?.upcomingThisWeek ?? 17;
+  const score = data?.score ?? null;
+  const status = data?.status ?? "No data";
 
   // Arc calculation for semi-circle gauge (radius = 70, strokeWidth = 14)
   // Arc length = PI * radius = 3.14159 * 70 = 219.9
-  const progress = Math.min(100, Math.max(0, score)) / 100;
+  const progress = score === null ? 0 : Math.min(100, Math.max(0, score)) / 100;
 
   return (
     <Card className="border shadow-sm flex flex-col justify-between">
@@ -30,7 +27,7 @@ export function ClinicHealth({ data }: ClinicHealthProps) {
           </CardTitle>
         </div>
         <CardDescription className="text-xs text-muted-foreground mt-0.5">
-          Composite score across acuity, workload and cancellations.
+          Operational index from critical patients and recent appointment cancellations.
         </CardDescription>
       </CardHeader>
 
@@ -62,10 +59,10 @@ export function ClinicHealth({ data }: ClinicHealthProps) {
           {/* Center text inside Arc */}
           <div className="absolute top-[38px] flex flex-col items-center pointer-events-none">
             <span className="text-4xl sm:text-5xl font-black tracking-tight text-foreground">
-              {score}
+              {score ?? "—"}
             </span>
             <span className="text-[11px] text-muted-foreground font-medium -mt-1">
-              out of 100
+              {score === null ? "No recent appointment data" : "out of 100"}
             </span>
             <span className="text-xs font-bold text-amber-400 mt-1">
               {status}
@@ -77,19 +74,19 @@ export function ClinicHealth({ data }: ClinicHealthProps) {
         <div className="grid grid-cols-3 w-full gap-2 pt-6 mt-4 border-t border-border/40 text-center">
           <div className="flex flex-col items-center">
             <AlertCircle className="h-4 w-4 text-rose-400 mb-1" />
-            <span className="text-base font-bold text-foreground">{critical}</span>
+            <span className="text-base font-bold text-foreground">{data?.criticalPatients ?? "—"}</span>
             <span className="text-[11px] text-muted-foreground font-medium">Critical</span>
           </div>
           <div className="flex flex-col items-center">
             <Calendar className="h-4 w-4 text-teal-400 mb-1" />
-            <span className="text-base font-bold text-foreground">{todayAppts}</span>
+            <span className="text-base font-bold text-foreground">{data?.appointmentsToday ?? "—"}</span>
             <span className="text-[11px] text-muted-foreground font-medium">
               Appointments today
             </span>
           </div>
           <div className="flex flex-col items-center">
             <CalendarCheck className="h-4 w-4 text-emerald-400 mb-1" />
-            <span className="text-base font-bold text-foreground">{upcomingThisWeek}</span>
+            <span className="text-base font-bold text-foreground">{data?.upcomingThisWeek ?? "—"}</span>
             <span className="text-[11px] text-muted-foreground font-medium">
               Upcoming this week
             </span>

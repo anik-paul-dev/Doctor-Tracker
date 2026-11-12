@@ -2,6 +2,8 @@ import mongoose, { FilterQuery, SortOrder } from "mongoose";
 import connectDB from "@/lib/db";
 import Doctor, { IDoctor } from "@/models/Doctor";
 import Patient from "@/models/Patient";
+import Appointment from "@/models/Appointment";
+import Activity from "@/models/Activity";
 import { DoctorQuery } from "@/lib/validations";
 
 function escapeRegex(text: string): string {
@@ -81,25 +83,31 @@ export async function getDoctorById(id: string) {
 }
 
 export async function createDoctor(
-  data: Omit<IDoctor, keyof mongoose.Document | "patientCount" | "createdAt" | "updatedAt">
+  data: Omit<IDoctor, keyof mongoose.Document | "patientCount" | "createdAt" | "updatedAt">,
+  userName: string
 ) {
   await connectDB();
 
   const doctor = await Doctor.create(data);
+  await Activity.create({ type: "Created", userName, description: "Created a doctor record", entityType: "doctor" }).catch(() => null);
   return doctor.toObject();
 }
 
-export async function updateDoctor(id: string, data: Partial<IDoctor>) {
+export async function updateDoctor(id: string, data: Partial<IDoctor>, userName: string) {
   await connectDB();
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return null;
   }
 
-  return Doctor.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
+  const doctor = await Doctor.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
+  if (doctor) {
+    await Activity.create({ type: "Updated", userName, description: "Updated a doctor record", entityType: "doctor" }).catch(() => null);
+  }
+  return doctor;
 }
 
-export async function deleteDoctor(id: string) {
+export async function deleteDoctor(id: string, userName: string) {
   await connectDB();
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -108,8 +116,13 @@ export async function deleteDoctor(id: string) {
 
   // Delete all patients belonging to this doctor
   await Patient.deleteMany({ doctorId: id });
+  await Appointment.deleteMany({ doctorId: id });
 
-  return Doctor.findByIdAndDelete(id).lean();
+  const doctor = await Doctor.findByIdAndDelete(id).lean();
+  if (doctor) {
+    await Activity.create({ type: "Deleted", userName, description: "Deleted a doctor record", entityType: "doctor" }).catch(() => null);
+  }
+  return doctor;
 }
 
 export async function getUniqueHospitals() {

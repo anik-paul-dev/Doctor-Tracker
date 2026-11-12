@@ -59,8 +59,8 @@ export interface AdmissionTrend {
 }
 
 export interface ClinicHealth {
-  score: number; // 0 - 100
-  status: "Optimal" | "Good" | "Needs attention" | "Critical";
+  score: number | null; // null until enough appointment data exists
+  status: "Optimal" | "Good" | "Needs attention" | "Critical" | "No data";
   criticalPatients: number;
   appointmentsToday: number;
   upcomingThisWeek: number;

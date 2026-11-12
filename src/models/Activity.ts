@@ -20,7 +20,6 @@ const ActivitySchema = new Schema<IActivity>(
     userName: {
       type: String,
       required: true,
-      default: "Alex Morgan",
     },
     description: {
       type: String,

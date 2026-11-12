@@ -71,7 +71,7 @@ export function TopDoctorsRoster({ data }: TopDoctorsRosterProps) {
                       {doc.patientCount} patients
                     </span>
                     <span className="text-[11px] text-muted-foreground mt-0.5">
-                      {doc.specialization || "General"}
+                      {doc.specialization || "—"}
                     </span>
                   </div>
                 </div>

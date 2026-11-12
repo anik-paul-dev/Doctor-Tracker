@@ -2,6 +2,8 @@ import mongoose, { FilterQuery, SortOrder, Types } from "mongoose";
 import connectDB from "@/lib/db";
 import Patient, { IPatient } from "@/models/Patient";
 import Doctor from "@/models/Doctor";
+import Appointment from "@/models/Appointment";
+import Activity from "@/models/Activity";
 import { PatientQuery } from "@/lib/validations";
 
 function escapeRegex(text: string): string {
@@ -161,7 +163,8 @@ export async function createPatient(
     email?: string;
     address?: string;
     notes?: string;
-  }
+  },
+  userName: string
 ) {
   await connectDB();
 
@@ -170,17 +173,22 @@ export async function createPatient(
     doctorId: new Types.ObjectId(data.doctorId),
   };
 
+  if (!(await Doctor.exists({ _id: data.doctorId }))) {
+    throw new Error("Doctor not found");
+  }
+
   const patient = await Patient.create(patientData);
 
   // Increment doctor's patientCount
   await Doctor.findByIdAndUpdate(data.doctorId, {
     $inc: { patientCount: 1 },
   });
+  await Activity.create({ type: "Created", userName, description: "Created a patient record", entityType: "patient" }).catch(() => null);
 
   return patient.toObject();
 }
 
-export async function updatePatient(id: string, data: Partial<IPatient>) {
+export async function updatePatient(id: string, data: Partial<IPatient>, userName: string) {
   await connectDB();
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -198,15 +206,19 @@ export async function updatePatient(id: string, data: Partial<IPatient>) {
     }
   }
 
-  return Patient.findByIdAndUpdate(id, data, {
+  const patient = await Patient.findByIdAndUpdate(id, data, {
     new: true,
     runValidators: true,
   })
     .populate("doctorId", "name specialization")
     .lean();
+  if (patient) {
+    await Activity.create({ type: "Updated", userName, description: "Updated a patient record", entityType: "patient" }).catch(() => null);
+  }
+  return patient;
 }
 
-export async function deletePatient(id: string) {
+export async function deletePatient(id: string, userName: string) {
   await connectDB();
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -216,10 +228,12 @@ export async function deletePatient(id: string) {
   const patient = await Patient.findByIdAndDelete(id).lean() as (IPatient & { _id: mongoose.Types.ObjectId }) | null;
 
   if (patient) {
+    await Appointment.deleteMany({ patientId: id });
     // Decrement doctor's patientCount
     await Doctor.findByIdAndUpdate(patient.doctorId, {
       $inc: { patientCount: -1 },
     });
+    await Activity.create({ type: "Deleted", userName, description: "Deleted a patient record", entityType: "patient" }).catch(() => null);
   }
 
   return patient;

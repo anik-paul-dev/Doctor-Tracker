@@ -50,7 +50,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const updated = await appointmentService.updateAppointment(
       id,
       parsed.data,
-      currentUser.name || "Alex Morgan"
+      currentUser.name
     );
     if (!updated) return notFoundError("Appointment not found");
 
@@ -70,7 +70,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     const { id } = params;
     const deleted = await appointmentService.deleteAppointment(
       id,
-      currentUser.name || "Alex Morgan"
+      currentUser.name
     );
     if (!deleted) return notFoundError("Appointment not found");
 

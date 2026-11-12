@@ -75,7 +75,7 @@ export async function POST(
       return validationError("Validation failed", parsed.error.flatten().fieldErrors);
     }
 
-    const patient = await patientService.createPatient(parsed.data);
+    const patient = await patientService.createPatient(parsed.data, currentUser.name);
 
     return successResponse(patient, 201);
   } catch (error) {
