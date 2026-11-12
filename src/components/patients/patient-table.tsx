@@ -27,9 +27,6 @@ interface PatientTableProps {
   onEdit: (patient: Patient) => void;
   onDelete: (patient: Patient) => void;
   showDoctor?: boolean;
-  selectedIds?: string[];
-  onSelectToggle?: (id: string) => void;
-  onSelectAllToggle?: () => void;
 }
 
 const CONDITION_STYLES: Record<string, { pill: string; dot: string }> = {
@@ -64,12 +61,7 @@ export function PatientTable({
   onEdit,
   onDelete,
   showDoctor = true,
-  selectedIds = [],
-  onSelectToggle,
-  onSelectAllToggle,
 }: PatientTableProps) {
-  const selectable = Boolean(onSelectToggle && onSelectAllToggle);
-  const allSelected = patients.length > 0 && patients.every((patient) => selectedIds.includes(patient._id));
 
   return (
     <div className="rounded-xl border border-border/80 bg-card shadow-sm overflow-hidden">
@@ -77,17 +69,6 @@ export function PatientTable({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/80">
-              {selectable && (
-                <TableHead className="w-10 px-3">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all patients on this page"
-                    checked={allSelected}
-                    onChange={() => onSelectAllToggle?.()}
-                    className="h-4 w-4 accent-primary"
-                  />
-                </TableHead>
-              )}
               <TableHead className="font-semibold text-xs uppercase tracking-wider text-muted-foreground min-w-[200px]">
                 Patient
               </TableHead>
@@ -117,7 +98,6 @@ export function PatientTable({
                 typeof patient.doctorId === "object" && patient.doctorId !== null
                   ? patient.doctorId
                   : null;
-              const isSelected = selectedIds.includes(patient._id);
 
               const isToday =
                 new Date(patient.createdAt).toDateString() === new Date().toDateString();
@@ -125,20 +105,8 @@ export function PatientTable({
               return (
                 <TableRow
                   key={patient._id}
-                  data-state={isSelected ? "selected" : undefined}
                   className="hover:bg-muted/30 transition-colors border-b border-border/60"
                 >
-                  {selectable && (
-                    <TableCell className="w-10 px-3">
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${patient.name}`}
-                        checked={isSelected}
-                        onChange={() => onSelectToggle?.(patient._id)}
-                        className="h-4 w-4 accent-primary"
-                      />
-                    </TableCell>
-                  )}
                   {/* Patient Name & Details */}
                   <TableCell>
                     <div className="flex items-center gap-3">

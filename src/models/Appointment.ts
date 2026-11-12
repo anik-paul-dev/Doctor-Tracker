@@ -12,6 +12,7 @@ export interface IAppointment extends Document {
   room: string;
   status: AppointmentStatus;
   notes?: string;
+  seedKey?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +64,7 @@ const AppointmentSchema = new Schema<IAppointment>(
       type: String,
       trim: true,
     },
+    seedKey: { type: String, select: false },
   },
   {
     timestamps: true,
@@ -74,6 +76,7 @@ AppointmentSchema.index({ date: 1, time: 1 });
 AppointmentSchema.index({ doctorId: 1, date: 1, time: 1 });
 AppointmentSchema.index({ patientId: 1, date: -1 });
 AppointmentSchema.index({ status: 1, date: 1 });
+AppointmentSchema.index({ seedKey: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.Appointment ||
   mongoose.model<IAppointment>("Appointment", AppointmentSchema);

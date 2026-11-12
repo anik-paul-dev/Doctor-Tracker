@@ -27,6 +27,13 @@ import type { Appointment, AppointmentFilters, CreateAppointmentInput, UpdateApp
 
 export default function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+  const [weekStart, setWeekStart] = useState(() => {
+    const monday = new Date();
+    const offset = monday.getDay() === 0 ? -6 : 1 - monday.getDay();
+    monday.setDate(monday.getDate() + offset);
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  });
 
   const [filters, setFilters] = useState<AppointmentFilters>({
     page: 1,
@@ -39,7 +46,16 @@ export default function AppointmentsPage() {
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [deletingAppointment, setDeletingAppointment] = useState<Appointment | null>(null);
 
-  const { data, isLoading } = useAppointments(filters);
+  const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const { data, isLoading: isListLoading } = useAppointments(filters, viewMode === "list");
+  const { data: calendarData, isLoading: isCalendarLoading } = useAppointments({
+    page: 1,
+    limit: 100,
+    startDate: dateKey(weekStart),
+    endDate: dateKey(weekEnd),
+  }, viewMode === "calendar");
   const createMutation = useCreateAppointment();
   const updateMutation = useUpdateAppointment();
   const deleteMutation = useDeleteAppointment();
@@ -177,11 +193,13 @@ export default function AppointmentsPage() {
       )}
 
       {/* Main Content Area */}
-      {isLoading ? (
+      {(viewMode === "calendar" ? isCalendarLoading : isListLoading) ? (
         <div className="h-80 rounded-xl border bg-card animate-pulse" />
       ) : viewMode === "calendar" ? (
         <AppointmentCalendar
-          appointments={appointments}
+          appointments={calendarData?.appointments || []}
+          weekStart={weekStart}
+          onWeekStartChange={setWeekStart}
           onSelectAppointment={handleSelectAppointment}
         />
       ) : (

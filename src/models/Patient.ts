@@ -10,6 +10,7 @@ export interface IPatient extends Document {
   email?: string;
   address?: string;
   notes?: string;
+  seedKey?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,6 +54,7 @@ const PatientSchema = new Schema<IPatient>(
     notes: {
       type: String,
     },
+    seedKey: { type: String, select: false },
   },
   {
     timestamps: true,
@@ -64,6 +66,7 @@ PatientSchema.index({ name: "text", condition: "text" });
 PatientSchema.index({ doctorId: 1, createdAt: -1 });
 PatientSchema.index({ condition: 1, createdAt: -1 });
 PatientSchema.index({ createdAt: -1 });
+PatientSchema.index({ seedKey: 1 }, { unique: true, sparse: true });
 
 const Patient =
   mongoose.models.Patient ||

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,16 @@ import type { Appointment } from "@/types/appointment";
 
 interface AppointmentCalendarProps {
   appointments: Appointment[];
+  weekStart: Date;
+  onWeekStartChange: (date: Date) => void;
   onSelectAppointment: (appointment: Appointment) => void;
+}
+
+function localDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 const HOURS = [
@@ -51,22 +60,14 @@ const CARD_COLORS = [
 
 export function AppointmentCalendar({
   appointments,
+  weekStart,
+  onWeekStartChange,
   onSelectAppointment,
 }: AppointmentCalendarProps) {
-  // Start date anchored to the current week (Monday)
-  const [currentDate, setCurrentDate] = useState(() => {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-    const monday = new Date(d.setDate(diff));
-    monday.setHours(0, 0, 0, 0);
-    return monday;
-  });
-
   const changeWeek = (offset: number) => {
-    const next = new Date(currentDate);
+    const next = new Date(weekStart);
     next.setDate(next.getDate() + offset * 7);
-    setCurrentDate(next);
+    onWeekStartChange(next);
   };
 
   const setToday = () => {
@@ -75,15 +76,15 @@ export function AppointmentCalendar({
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(d.setDate(diff));
     monday.setHours(0, 0, 0, 0);
-    setCurrentDate(monday);
+    onWeekStartChange(monday);
   };
 
   // Generate 7 days for the current week
   const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(currentDate);
+    const d = new Date(weekStart);
     d.setDate(d.getDate() + i);
-    const dateStr = d.toISOString().slice(0, 10);
-    const isToday = new Date().toISOString().slice(0, 10) === dateStr;
+    const dateStr = localDateKey(d);
+    const isToday = localDateKey(new Date()) === dateStr;
     const dayName = d.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase();
     const dayNum = d.getDate();
     const monthName = d.toLocaleDateString("en-US", { month: "short" });

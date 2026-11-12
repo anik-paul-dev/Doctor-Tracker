@@ -19,9 +19,9 @@ const passwordSchema = z.object({
 
 export async function PUT(request: NextRequest) {
   try {
-    await connectDB();
     const currentUser = await getCurrentUser();
     if (!currentUser) return unauthorizedError();
+    await connectDB();
 
     const body = await request.json();
     const parsed = passwordSchema.safeParse(body);

@@ -8,6 +8,7 @@ export interface IActivity extends Document {
   description: string;
   entityType: "doctor" | "patient" | "appointment";
   createdAt: Date;
+  seedKey?: string;
 }
 
 const ActivitySchema = new Schema<IActivity>(
@@ -31,11 +32,13 @@ const ActivitySchema = new Schema<IActivity>(
       required: true,
       index: true,
     },
+    seedKey: { type: String, select: false },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
   }
 );
+ActivitySchema.index({ seedKey: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.Activity ||
   mongoose.model<IActivity>("Activity", ActivitySchema);

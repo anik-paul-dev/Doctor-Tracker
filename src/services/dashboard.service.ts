@@ -5,490 +5,250 @@ import Appointment from "@/models/Appointment";
 import Activity from "@/models/Activity";
 import { formatRelativeTime } from "@/lib/utils";
 import type {
-  DashboardStats,
-  SpecializationDistribution,
-  PatientsPerDoctor,
-  MonthlyTrend,
+  DashboardData,
   RecentActivity,
-  ConditionDistribution,
-  GenderDistribution,
   RecentAdmission,
-  AdmissionTrend,
   ClinicHealth,
   SmartInsightItem,
   TodayScheduleItem,
   LiveActivityItem,
 } from "@/types/dashboard";
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+function isoDay(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+/** Load the dashboard with one facet aggregation per collection. This keeps
+ * every dashboard section database-backed while avoiding dozens of round trips. */
+export async function getDashboardData(): Promise<DashboardData> {
   await connectDB();
 
   const now = new Date();
-  const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const firstDayThisMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const firstDayLastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  const twelveMonthsAgo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11, 1));
+  const today = now.toISOString().slice(0, 10);
+  const nextWeek = new Date(now);
+  nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
+  const nextWeekDate = nextWeek.toISOString().slice(0, 10);
+  const recentStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  recentStart.setUTCHours(0, 0, 0, 0);
+  const trendStart = new Date(now);
+  trendStart.setUTCHours(0, 0, 0, 0);
+  trendStart.setUTCDate(trendStart.getUTCDate() - 29);
+  const dailyStart = new Date(trendStart);
+  dailyStart.setUTCDate(dailyStart.getUTCDate() - 12);
 
-  const [
-    totalDoctors,
-    totalPatients,
-    newDoctorsThisMonth,
-    newPatientsThisMonth,
-    doctorsLastMonth,
-    patientsLastMonth,
-  ] = await Promise.all([
-    Doctor.countDocuments(),
-    Patient.countDocuments(),
-    Doctor.countDocuments({ createdAt: { $gte: firstDayThisMonth } }),
-    Patient.countDocuments({ createdAt: { $gte: firstDayThisMonth } }),
-    Doctor.countDocuments({
-      createdAt: { $gte: firstDayLastMonth, $lt: firstDayThisMonth },
-    }),
-    Patient.countDocuments({
-      createdAt: { $gte: firstDayLastMonth, $lt: firstDayThisMonth },
-    }),
-  ]);
-
-  const averagePatientsPerDoctor =
-    totalDoctors > 0
-      ? Math.round((totalPatients / totalDoctors) * 10) / 10
-      : 0;
-
-  const doctorGrowthPercent =
-    doctorsLastMonth > 0
-      ? Math.round(
-          ((newDoctorsThisMonth - doctorsLastMonth) / doctorsLastMonth) * 100
-        )
-      : newDoctorsThisMonth > 0
-        ? 100
-        : 0;
-
-  const patientGrowthPercent =
-    patientsLastMonth > 0
-      ? Math.round(
-          ((newPatientsThisMonth - patientsLastMonth) / patientsLastMonth) * 100
-        )
-      : newPatientsThisMonth > 0
-        ? 100
-        : 0;
-
-  return {
-    totalDoctors,
-    totalPatients,
-    averagePatientsPerDoctor,
-    newDoctorsThisMonth,
-    newPatientsThisMonth,
-    doctorGrowthPercent,
-    patientGrowthPercent,
-  };
-}
-
-export async function getSpecializationDistribution(): Promise<
-  SpecializationDistribution[]
-> {
-  await connectDB();
-
-  const result = await Doctor.aggregate([
-    {
-      $group: {
-        _id: "$specialization",
-        count: { $sum: 1 },
-      },
-    },
-    {
-      $project: {
-        _id: 0,
-        specialization: "$_id",
-        count: 1,
-      },
-    },
-    { $sort: { count: -1 } },
-  ]);
-
-  return result;
-}
-
-export async function getPatientsPerDoctor(): Promise<PatientsPerDoctor[]> {
-  await connectDB();
-
-  const result = await Doctor.find()
-    .sort({ patientCount: -1 })
-    .limit(10)
-    .select("name patientCount specialization")
-    .lean();
-
-  return result.map((doc) => ({
-    doctorName: doc.name,
-    patientCount: doc.patientCount,
-    specialization: doc.specialization || "",
-  }));
-}
-
-export async function getMonthlyTrend(): Promise<MonthlyTrend[]> {
-  await connectDB();
-
-  const twelveMonthsAgo = new Date();
-  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11);
-  twelveMonthsAgo.setDate(1);
-  twelveMonthsAgo.setHours(0, 0, 0, 0);
-
-  const [doctorTrend, patientTrend] = await Promise.all([
+  const [doctorFacets, patientFacets, appointmentFacets, activityRows] = await Promise.all([
     Doctor.aggregate([
-      { $match: { createdAt: { $gte: twelveMonthsAgo } } },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
-          },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { "_id.year": 1, "_id.month": 1 } },
-    ]),
-    Patient.aggregate([
-      { $match: { createdAt: { $gte: twelveMonthsAgo } } },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
-          },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { "_id.year": 1, "_id.month": 1 } },
-    ]),
-  ]);
-
-  // Build a map for all 12 months
-  const months: MonthlyTrend[] = [];
-  const now = new Date();
-
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const monthLabel = date.toLocaleString("default", {
-      month: "short",
-      year: "numeric",
-    });
-
-    const doctorEntry = doctorTrend.find(
-      (d: { _id: { year: number; month: number }; count: number }) =>
-        d._id.year === year && d._id.month === month
-    );
-    const patientEntry = patientTrend.find(
-      (p: { _id: { year: number; month: number }; count: number }) =>
-        p._id.year === year && p._id.month === month
-    );
-
-    months.push({
-      month: monthLabel,
-      doctors: doctorEntry?.count ?? 0,
-      patients: patientEntry?.count ?? 0,
-    });
-  }
-
-  return months;
-}
-
-export async function getRecentActivity(): Promise<RecentActivity[]> {
-  await connectDB();
-
-  const [recentDoctors, recentPatients] = await Promise.all([
-    Doctor.find()
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .select("name createdAt")
-      .lean()
-      .exec() as unknown as Promise<Array<{ _id: unknown; name: string; createdAt: Date }>>,
-    Patient.find()
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .select("name createdAt")
-      .lean()
-      .exec() as unknown as Promise<Array<{ _id: unknown; name: string; createdAt: Date }>>,
-  ]);
-
-  const activities: RecentActivity[] = [
-    ...recentDoctors.map((doc) => ({
-      _id: String(doc._id),
-      type: "doctor" as const,
-      name: doc.name,
-      action: "New doctor registered",
-      createdAt: doc.createdAt.toISOString(),
-    })),
-    ...recentPatients.map((patient) => ({
-      _id: String(patient._id),
-      type: "patient" as const,
-      name: patient.name,
-      action: "New patient added",
-      createdAt: patient.createdAt.toISOString(),
-    })),
-  ];
-
-  // Sort combined by createdAt desc and take top 10
-  activities.sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-
-  return activities.slice(0, 10);
-}
-
-export async function getConditionDistribution(): Promise<ConditionDistribution[]> {
-  await connectDB();
-
-  const result = await Patient.aggregate([
-    {
-      $group: {
-        _id: "$condition",
-        count: { $sum: 1 },
-      },
-    },
-    {
-      $project: {
-        _id: 0,
-        condition: "$_id",
-        count: 1,
-      },
-    },
-    { $sort: { count: -1 } },
-  ]);
-
-  return result;
-}
-
-export async function getGenderDistribution(): Promise<{
-  distribution: GenderDistribution[];
-  averageAge: number;
-}> {
-  await connectDB();
-
-  const [genderResult, ageResult] = await Promise.all([
-    Patient.aggregate([
-      {
-        $group: {
-          _id: "$gender",
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          gender: "$_id",
-          count: 1,
-        },
-      },
-      { $sort: { count: -1 } },
-    ]),
-    Patient.aggregate([
-      {
-        $group: {
+      { $facet: {
+        stats: [{ $group: {
           _id: null,
-          averageAge: { $avg: "$age" },
-        },
-      },
+          total: { $sum: 1 },
+          current: { $sum: { $cond: [{ $gte: ["$createdAt", firstDayThisMonth] }, 1, 0] } },
+          previous: { $sum: { $cond: [{ $and: [{ $gte: ["$createdAt", firstDayLastMonth] }, { $lt: ["$createdAt", firstDayThisMonth] }] }, 1, 0] } },
+        } }],
+        specializations: [
+          { $group: { _id: "$specialization", count: { $sum: 1 } } },
+          { $project: { _id: 0, specialization: "$_id", count: 1 } },
+          { $sort: { count: -1 } },
+        ],
+        roster: [
+          { $sort: { patientCount: -1 } },
+          { $limit: 10 },
+          { $project: { _id: 0, doctorName: "$name", patientCount: 1, specialization: 1 } },
+        ],
+        monthly: [
+          { $match: { createdAt: { $gte: twelveMonthsAgo } } },
+          { $group: { _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } }, count: { $sum: 1 } } },
+        ],
+        daily: [
+          { $match: { createdAt: { $gte: trendStart, $lte: now } } },
+          { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "UTC" } }, count: { $sum: 1 } } },
+        ],
+        recent: [
+          { $sort: { createdAt: -1 } },
+          { $limit: 10 },
+          { $project: { _id: 1, name: 1, createdAt: 1 } },
+        ],
+      } },
     ]),
-  ]);
-
-  const averageAge =
-    ageResult.length > 0 ? Math.round(ageResult[0].averageAge * 10) / 10 : 0;
-
-  return { distribution: genderResult, averageAge };
-}
-
-export async function getAdmissionTrends(): Promise<Record<7 | 14 | 30, AdmissionTrend[]>> {
-  await connectDB();
-  const endDate = new Date();
-  endDate.setUTCHours(23, 59, 59, 999);
-  const startDate = new Date(endDate);
-  startDate.setUTCDate(startDate.getUTCDate() - 29);
-  startDate.setUTCHours(0, 0, 0, 0);
-
-  const [patientTrend, doctorTrend] = await Promise.all([
     Patient.aggregate([
-      { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } },
+      { $facet: {
+        stats: [{ $group: {
+          _id: null,
+          total: { $sum: 1 },
+          current: { $sum: { $cond: [{ $gte: ["$createdAt", firstDayThisMonth] }, 1, 0] } },
+          previous: { $sum: { $cond: [{ $and: [{ $gte: ["$createdAt", firstDayLastMonth] }, { $lt: ["$createdAt", firstDayThisMonth] }] }, 1, 0] } },
+          averageAge: { $avg: "$age" },
+        } }],
+        conditions: [
+          { $group: { _id: "$condition", count: { $sum: 1 } } },
+          { $project: { _id: 0, condition: "$_id", count: 1 } },
+          { $sort: { count: -1 } },
+        ],
+        genders: [
+          { $group: { _id: "$gender", count: { $sum: 1 } } },
+          { $project: { _id: 0, gender: "$_id", count: 1 } },
+          { $sort: { count: -1 } },
+        ],
+        monthly: [
+          { $match: { createdAt: { $gte: twelveMonthsAgo } } },
+          { $group: { _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } }, count: { $sum: 1 } } },
+        ],
+        recent: [
+          { $sort: { createdAt: -1 } },
+          { $limit: 10 },
+          { $project: { _id: 1, name: 1, createdAt: 1 } },
+        ],
+        admissions: [
+          { $sort: { createdAt: -1 } },
+          { $limit: 6 },
+          { $lookup: { from: Doctor.collection.name, localField: "doctorId", foreignField: "_id", as: "doctor" } },
+          { $unwind: { path: "$doctor", preserveNullAndEmptyArrays: true } },
+          { $project: { _id: 1, name: 1, condition: 1, createdAt: 1, doctorName: "$doctor.name" } },
+        ],
+        daily: [
+          { $match: { createdAt: { $gte: dailyStart, $lte: now } } },
+          { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "UTC" } }, count: { $sum: 1 } } },
+        ],
+      } },
     ]),
-    Doctor.aggregate([
-      { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
-      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } },
+    Appointment.aggregate([
+      { $facet: {
+        health: [{ $group: {
+          _id: null,
+          today: { $sum: { $cond: [{ $eq: ["$date", today] }, 1, 0] } },
+          upcoming: { $sum: { $cond: [{ $and: [{ $gt: ["$date", today] }, { $lte: ["$date", nextWeekDate] }, { $in: ["$status", ["scheduled", "confirmed"]] }] }, 1, 0] } },
+          recent: { $sum: { $cond: [{ $gte: ["$createdAt", recentStart] }, 1, 0] } },
+          cancelled: { $sum: { $cond: [{ $and: [{ $gte: ["$createdAt", recentStart] }, { $eq: ["$status", "cancelled"] }] }, 1, 0] } },
+        } }],
+        schedule: [
+          { $match: { date: today } },
+          { $sort: { time: 1 } },
+          { $limit: 8 },
+          { $lookup: { from: Patient.collection.name, localField: "patientId", foreignField: "_id", as: "patient" } },
+          { $lookup: { from: Doctor.collection.name, localField: "doctorId", foreignField: "_id", as: "doctor" } },
+          { $unwind: { path: "$patient", preserveNullAndEmptyArrays: true } },
+          { $unwind: { path: "$doctor", preserveNullAndEmptyArrays: true } },
+          { $project: { _id: 1, time: 1, room: 1, status: 1, patientName: "$patient.name", doctorName: "$doctor.name" } },
+        ],
+      } },
     ]),
+    Activity.find().sort({ createdAt: -1 }).limit(6).lean(),
   ]);
 
-  const dayMap = new Map<string, { patients: number; doctors: number }>();
-  for (let i = 0; i < 30; i++) {
-    const day = new Date(startDate);
-    day.setUTCDate(day.getUTCDate() + i);
-    dayMap.set(day.toISOString().slice(0, 10), { patients: 0, doctors: 0 });
-  }
-  for (const entry of patientTrend) {
-    const bucket = dayMap.get(entry._id);
-    if (bucket) bucket.patients = entry.count;
-  }
-  for (const entry of doctorTrend) {
-    const bucket = dayMap.get(entry._id);
-    if (bucket) bucket.doctors = entry.count;
-  }
+  const doctors = doctorFacets[0] ?? {};
+  const patients = patientFacets[0] ?? {};
+  const appointments = appointmentFacets[0] ?? {};
+  const doctorStats = doctors.stats?.[0] ?? { total: 0, current: 0, previous: 0 };
+  const patientStats = patients.stats?.[0] ?? { total: 0, current: 0, previous: 0, averageAge: 0 };
+  const growth = (current: number, previous: number) =>
+    previous > 0 ? Math.round(((current - previous) / previous) * 100) : current > 0 ? 100 : 0;
 
-  const result = Array.from(dayMap.entries()).map(([dateStr, counts]) => ({
-    date: new Date(`${dateStr}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "2-digit", timeZone: "UTC" }),
-    ...counts,
+  const doctorMonths = new Map<string, number>((doctors.monthly ?? []).map((item: { _id: { year: number; month: number }; count: number }) => [`${item._id.year}-${item._id.month}`, item.count]));
+  const patientMonths = new Map<string, number>((patients.monthly ?? []).map((item: { _id: { year: number; month: number }; count: number }) => [`${item._id.year}-${item._id.month}`, item.count]));
+  const monthlyTrend = Array.from({ length: 12 }, (_, index) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11 + index, 1));
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const key = `${year}-${month}`;
+    return {
+      month: date.toLocaleString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }),
+      doctors: doctorMonths.get(key) ?? 0,
+      patients: patientMonths.get(key) ?? 0,
+    };
+  });
+
+  const patientDaily = new Map<string, number>((patients.daily ?? []).map((item: { _id: string; count: number }) => [item._id, item.count]));
+  const doctorDaily = new Map<string, number>((doctors.daily ?? []).map((item: { _id: string; count: number }) => [item._id, item.count]));
+  const trend30 = Array.from({ length: 30 }, (_, index) => {
+    const day = new Date(trendStart);
+    day.setUTCDate(day.getUTCDate() + index);
+    const key = day.toISOString().slice(0, 10);
+    return {
+      date: day.toLocaleDateString("en-US", { month: "short", day: "2-digit", timeZone: "UTC" }),
+      patients: patientDaily.get(key) ?? 0,
+      doctors: doctorDaily.get(key) ?? 0,
+    };
+  });
+
+  const recentActivity: RecentActivity[] = [
+    ...(doctors.recent ?? []).map((doctor: { _id: unknown; name: string; createdAt: Date }) => ({
+      _id: String(doctor._id), type: "doctor" as const, name: doctor.name,
+      action: "New doctor registered", createdAt: new Date(doctor.createdAt).toISOString(),
+    })),
+    ...(patients.recent ?? []).map((patient: { _id: unknown; name: string; createdAt: Date }) => ({
+      _id: String(patient._id), type: "patient" as const, name: patient.name,
+      action: "New patient added", createdAt: new Date(patient.createdAt).toISOString(),
+    })),
+  ].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 10);
+
+  const recentAdmissions: RecentAdmission[] = (patients.admissions ?? []).map((patient: { _id: unknown; name: string; condition: string; createdAt: Date; doctorName?: string }) => ({
+    _id: String(patient._id), patientName: patient.name,
+    patientInitials: patient.name.split(/\s+/).map((part: string) => part[0]).join("").toUpperCase().slice(0, 2),
+    doctorName: patient.doctorName ? patient.doctorName.replace(/^Dr\.\s*/i, "") : "Doctor record unavailable",
+    condition: patient.condition, createdAt: new Date(patient.createdAt).toISOString(),
   }));
-  return { 7: result.slice(-7), 14: result.slice(-14), 30: result };
-}
 
-export async function getRecentAdmissions(
-  limit: number = 6
-): Promise<RecentAdmission[]> {
-  await connectDB();
-
-  const patients = (await Patient.find()
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .populate("doctorId", "name")
-    .lean()
-    .exec()) as unknown as Array<{
-    _id: unknown;
-    name: string;
-    condition: string;
-    createdAt: Date;
-    doctorId: { name: string } | null;
-  }>;
-
-  return patients.map((p) => ({
-    _id: String(p._id),
-    patientName: p.name,
-    patientInitials: p.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2),
-    doctorName: p.doctorId?.name ? p.doctorId.name.replace(/^Dr\.\s*/i, "") : "Doctor record unavailable",
-    condition: p.condition,
-    createdAt: p.createdAt.toISOString(),
-  }));
-}
-
-export async function getClinicHealth(): Promise<ClinicHealth> {
-  await connectDB();
-  const today = new Date().toISOString().slice(0, 10);
-  const nextWeek = new Date();
-  nextWeek.setDate(nextWeek.getDate() + 7);
-  const nextWeekStr = nextWeek.toISOString().slice(0, 10);
-
-  const recentStart = new Date();
-  recentStart.setDate(recentStart.getDate() - 7);
-  const [criticalCount, todayAppts, upcomingAppts, recentAppointments, cancelledAppointments] = await Promise.all([
-    Patient.countDocuments({ condition: { $regex: /^critical$/i } }),
-    Appointment.countDocuments({ date: today }),
-    Appointment.countDocuments({ date: { $gt: today, $lte: nextWeekStr }, status: { $nin: ["cancelled", "completed"] } }),
-    Appointment.countDocuments({ createdAt: { $gte: recentStart } }),
-    Appointment.countDocuments({ createdAt: { $gte: recentStart }, status: "cancelled" }),
-  ]);
-
-  const score = recentAppointments === 0
-    ? null
-    : Math.max(
-        0,
-        100 - Math.min(60, criticalCount * 8) - Math.round((cancelledAppointments / recentAppointments) * 30)
-      );
-  const status: ClinicHealth["status"] = score === null
-    ? "No data"
-    : score >= 90
-      ? "Optimal"
-      : score >= 75
-        ? "Good"
-        : score >= 50
-          ? "Needs attention"
-          : "Critical";
-
-  return {
-    score,
-    status,
-    criticalPatients: criticalCount,
-    appointmentsToday: todayAppts,
-    upcomingThisWeek: upcomingAppts,
-  };
-}
-
-export async function getSmartInsights(): Promise<SmartInsightItem[]> {
-  await connectDB();
-  const now = new Date();
-  const currentPeriodStart = new Date(now);
-  currentPeriodStart.setDate(currentPeriodStart.getDate() - 7);
-  const previousPeriodStart = new Date(currentPeriodStart);
-  previousPeriodStart.setDate(previousPeriodStart.getDate() - 7);
-  const [criticalCount, currentAdmissions, previousAdmissions] = await Promise.all([
-    Patient.countDocuments({ condition: { $regex: /^critical$/i } }),
-    Patient.countDocuments({ createdAt: { $gte: currentPeriodStart } }),
-    Patient.countDocuments({ createdAt: { $gte: previousPeriodStart, $lt: currentPeriodStart } }),
-  ]);
-
-  const insights: SmartInsightItem[] = [];
-  if (criticalCount > 0) {
-    insights.push({
-      id: "critical-patients",
-      type: "critical",
-      title: `${criticalCount} critical patients need attention`,
-      subtitle: "Review patient records and follow your clinic's escalation process.",
-      href: "/patients?condition=CRITICAL",
-    });
-  }
+  const health = appointments.health?.[0] ?? { today: 0, upcoming: 0, recent: 0, cancelled: 0 };
+  const criticalPatients = (patients.conditions ?? []).find((item: { condition: string; count: number }) => /^critical$/i.test(item.condition))?.count ?? 0;
+  const previousAdmissionStart = new Date(recentStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const currentAdmissions = (patients.daily ?? []).filter((item: { _id: string }) => item._id >= isoDay(recentStart)).reduce((total: number, item: { count: number }) => total + item.count, 0);
+  const previousAdmissions = (patients.daily ?? []).filter((item: { _id: string }) => item._id >= isoDay(previousAdmissionStart) && item._id < isoDay(recentStart)).reduce((total: number, item: { count: number }) => total + item.count, 0);
+  const smartInsights: SmartInsightItem[] = [];
+  if (criticalPatients > 0) smartInsights.push({
+    id: "critical-patients", type: "critical", title: `${criticalPatients} critical patients need attention`,
+    subtitle: "Review patient records and follow your clinic's escalation process.", href: "/patients?condition=CRITICAL",
+  });
   if (currentAdmissions !== previousAdmissions) {
     const rising = currentAdmissions > previousAdmissions;
-    insights.push({
-      id: "admission-trend",
-      type: rising ? "warning" : "info",
+    smartInsights.push({
+      id: "admission-trend", type: rising ? "warning" : "info",
       title: `${currentAdmissions} patient admissions in the last 7 days`,
-      subtitle: `${rising ? "Up" : "Down"} from ${previousAdmissions} in the previous 7 days.`,
-      href: "/patients",
+      subtitle: `${rising ? "Up" : "Down"} from ${previousAdmissions} in the previous 7 days.`, href: "/patients",
     });
   }
-  return insights;
-}
 
-export async function getTodaySchedule(): Promise<TodayScheduleItem[]> {
-  await connectDB();
-  const today = new Date().toISOString().slice(0, 10);
-  const appts = await Appointment.find({ date: today })
-    .populate("patientId", "name")
-    .populate("doctorId", "name")
-    .sort({ time: 1 })
-    .limit(8)
-    .lean();
+  const recentAppointmentCount = health.recent ?? 0;
+  const score = recentAppointmentCount === 0 ? null : Math.max(
+    0, 100 - Math.min(60, criticalPatients * 8) - Math.round(((health.cancelled ?? 0) / recentAppointmentCount) * 30)
+  );
+  const clinicStatus: ClinicHealth["status"] = score === null ? "No data" : score >= 90 ? "Optimal" : score >= 75 ? "Good" : score >= 50 ? "Needs attention" : "Critical";
 
-  return appts.map((a) => {
-      const p = a.patientId as { name?: string } | null;
-      const d = a.doctorId as { name?: string } | null;
-      if (!p?.name || !d?.name || !a.room) return null;
-      return {
-        id: String(a._id),
-        time: a.time,
-        patientName: p.name,
-        doctorName: d.name,
-        room: a.room,
-        status: (a.status as TodayScheduleItem["status"]) || "completed",
-      };
-  }).filter((item): item is TodayScheduleItem => item !== null);
-}
-
-export async function getLiveActivities(): Promise<LiveActivityItem[]> {
-  await connectDB();
-  const activities = await Activity.find()
-    .sort({ createdAt: -1 })
-    .limit(6)
-    .lean();
-
-  return activities.map((act) => ({
-      id: String(act._id),
-      type: act.type as LiveActivityItem["type"],
-      userName: act.userName,
-      description: act.description,
-      timeAgo: formatRelativeTime(act.createdAt),
-      createdAt: act.createdAt.toISOString(),
-  }));
+  return {
+    stats: {
+      totalDoctors: doctorStats.total,
+      totalPatients: patientStats.total,
+      averagePatientsPerDoctor: doctorStats.total ? Math.round((patientStats.total / doctorStats.total) * 10) / 10 : 0,
+      newDoctorsThisMonth: doctorStats.current,
+      newPatientsThisMonth: patientStats.current,
+      doctorGrowthPercent: growth(doctorStats.current, doctorStats.previous),
+      patientGrowthPercent: growth(patientStats.current, patientStats.previous),
+    },
+    specializationDistribution: doctors.specializations ?? [],
+    patientsPerDoctor: doctors.roster ?? [],
+    monthlyTrend,
+    recentActivity,
+    conditionDistribution: patients.conditions ?? [],
+    genderDistribution: patients.genders ?? [],
+    averageAge: Math.round((patientStats.averageAge ?? 0) * 10) / 10,
+    recentAdmissions,
+    admissionTrend7: trend30.slice(-7),
+    admissionTrend14: trend30.slice(-14),
+    admissionTrend30: trend30,
+    clinicHealth: {
+      score, status: clinicStatus, criticalPatients,
+      appointmentsToday: health.today ?? 0, upcomingThisWeek: health.upcoming ?? 0,
+    },
+    smartInsights,
+    todaySchedule: (appointments.schedule ?? []).filter((item: { patientName?: string; doctorName?: string; room?: string }) => item.patientName && item.doctorName && item.room).map((item: { _id: unknown; time: string; patientName: string; doctorName: string; room: string; status: TodayScheduleItem["status"] }) => ({
+      id: String(item._id), time: item.time, patientName: item.patientName,
+      doctorName: item.doctorName, room: item.room, status: item.status,
+    })),
+    liveActivities: activityRows.map((activity) => ({
+      id: String(activity._id), type: activity.type as LiveActivityItem["type"],
+      userName: activity.userName, description: activity.description,
+      timeAgo: formatRelativeTime(activity.createdAt), createdAt: activity.createdAt.toISOString(),
+    })),
+  };
 }

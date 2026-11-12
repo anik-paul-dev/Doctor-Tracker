@@ -13,12 +13,11 @@ import * as doctorService from "@/services/doctor.service";
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
-
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       return unauthorizedError();
     }
+    await connectDB();
 
     const { searchParams } = new URL(request.url);
     const queryObj: Record<string, string> = {};
@@ -46,12 +45,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       return unauthorizedError();
     }
+    await connectDB();
 
     const body = await request.json();
     const parsed = createDoctorSchema.safeParse(body);

@@ -1,6 +1,6 @@
 # Doctor Tracker — Clinical Management & Healthcare Analytics Portal
 
-[![Next.js](https://img.shields.io/badge/Next.js-14.2-black?style=flat&logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.4-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas_Free_M0-47A248?style=flat&logo=mongodb)](https://www.mongodb.com/)
@@ -10,7 +10,7 @@
 
 ## 1. Description (Elevator Pitch)
 
-**Doctor Tracker** is an enterprise-grade administrative healthcare web portal designed to streamline physician directory management, patient case assignments, and clinical workload analytics. Built with a high-performance Next.js 14 App Router architecture and MongoDB Atlas, Doctor Tracker empowers healthcare supervisors to monitor hospital staff allocations, track diagnosis distribution trends, evaluate physician-to-patient caseload metrics in real-time, and execute rapid multi-criteria searches with sub-millisecond response times.
+**Doctor Tracker** is an administrative healthcare portal for physician directories, patient assignments, appointments, and clinical workload analytics. Built with Next.js 16 and MongoDB Atlas, it uses paginated queries, indexed filters, and client-side caching to keep navigation responsive while keeping records in the database.
 
 ---
 
@@ -50,12 +50,12 @@ Follow these steps to set up and run the Doctor Tracker full-stack application o
    ```
 
 4. **Seed the Database (Optional but Recommended):**
-   Populate the database with a pre-configured administrator account, 20 doctors across 18 specializations, and 65 realistically distributed patient records spanning the last 12 months:
+   Add Bangladesh-based synthetic demo records for 12 doctors, 36 patients, 72 appointments, and activity history. The import is repeat-safe and preserves existing records:
    ```bash
    pnpm seed
    # or: npx tsx src/scripts/seed.ts
    ```
-   The seed script uses a published demo credential, so use it only with disposable interview data. For first-account registration on an empty database, temporarily set `ADMIN_REGISTRATION_ENABLED=true`, register the first account, then set it back to `false`. Registration is disabled by default and closes once an account exists.
+   On an empty database, the seed script also creates the documented demo administrator. Its published password is for disposable interview/demo databases only. Registration is disabled by default; if you prefer a private account, temporarily enable first-account registration, create it, then disable registration again.
 
 5. **Start the Development Server:**
    ```bash
@@ -63,7 +63,7 @@ Follow these steps to set up and run the Doctor Tracker full-stack application o
    ```
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-6. **Default Administrator Credentials:**
+6. **Demo Administrator Credentials:**
    | Role | Email | Password |
    |------|-------|----------|
    | **Super Admin** | `admin@doctortracker.com` | `password123` |
@@ -72,13 +72,13 @@ Follow these steps to set up and run the Doctor Tracker full-stack application o
 
 ## 3. System Architecture
 
-Doctor Tracker employs a **Full-Stack Monorepo Architecture** leveraging Next.js 14 App Router with strict multi-layered decoupling between presentation, client caching, route handlers, service business logic, and database persistence.
+Doctor Tracker employs a **Full-Stack Monorepo Architecture** using the Next.js 16 App Router with strict multi-layered decoupling between presentation, client caching, route handlers, service business logic, and database persistence.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        PRESENTATION & CLIENT LAYER                     │
 │                                                                        │
-│   Next.js 14 App Router (React 18 Server & Client Components)           │
+│   Next.js 16 App Router (React 19 Server & Client Components)          │
 │   ┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐  │
 │   │  Analytics Dash   │  │ Doctor Directory  │  │ Patient Directory │  │
 │   │ (Recharts Viz)    │  │  (CRUD + Filters) │  │  (CRUD + Search)  │  │
@@ -143,9 +143,9 @@ Doctor Tracker employs a **Full-Stack Monorepo Architecture** leveraging Next.js
   2. **Cache Invalidation & Optimistic Consistency**: When adding or discharging a patient under a doctor, a single `queryClient.invalidateQueries(["doctors", "doctor-patients"])` call ensures the doctor list, the specific doctor profile, the patient directory, and dashboard analytics sync immediately without manual state stitching.
   3. **Reduced Bundle Size & Performance**: Eliminating Redux Toolkit shaved ~40kB off the client bundle, reducing initial JavaScript parse and hydration time.
 
-### Decision 2: Next.js 14 Unified Full-Stack Architecture over Separate Standalone Express Server
+### Decision 2: Next.js 16 Unified Full-Stack Architecture over Separate Standalone Express Server
 - **Problem Context**: The interview specification allowed either a full-stack Next.js app or a decoupled Next.js client + Express backend.
-- **Why Full-Stack Next.js 14 Was Chosen**:
+- **Why Full-Stack Next.js 16 Was Chosen**:
   1. **End-to-End TypeScript Type Safety**: Both frontend forms and backend API route handlers share the exact same Zod validation schemas (`CreateDoctorInput`, `CreatePatientInput`) and TypeScript interfaces (`Doctor`, `Patient`, `DashboardData`). Any database schema change produces immediate compile-time errors in the frontend.
   2. **Zero-Configuration Deployment & Cold-Start Optimization**: Next.js route handlers run in lightweight serverless containers with singleton Mongoose connection caching (`cached.conn`), eliminating the need to configure and monitor a separate Node/Express server instance, CORS policies, or reverse proxies.
   3. **High Security Standards**: HttpOnly cookies are set and read natively within the same origin, mitigating Cross-Site Scripting (XSS) risks without requiring cross-domain cookie forwarding.

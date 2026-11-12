@@ -64,7 +64,6 @@ export default function PatientsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [deletingPatient, setDeletingPatient] = useState<Patient | null>(null);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const { data, isLoading } = usePatients(filters);
   const { data: doctorsData } = useDoctors({ limit: 100 });
@@ -90,21 +89,6 @@ export default function PatientsPage() {
     });
   };
 
-  const handleSelectToggle = (id: string) => {
-    setSelectedIds((previous) =>
-      previous.includes(id) ? previous.filter((selectedId) => selectedId !== id) : [...previous, id]
-    );
-  };
-
-  const handleSelectAllToggle = () => {
-    const pagePatients = data?.patients || [];
-    if (pagePatients.length > 0 && pagePatients.every((patient) => selectedIds.includes(patient._id))) {
-      setSelectedIds((previous) => previous.filter((id) => !pagePatients.some((patient) => patient._id === id)));
-    } else {
-      setSelectedIds((previous) => Array.from(new Set(previous.concat(pagePatients.map((patient) => patient._id)))));
-    }
-  };
-
   const handleExport = () => {
     const allPatients = data?.patients || [];
     if (allPatients.length === 0) {
@@ -112,9 +96,7 @@ export default function PatientsPage() {
       return;
     }
 
-    const targetList = selectedIds.length > 0
-      ? allPatients.filter((patient) => selectedIds.includes(patient._id))
-      : allPatients;
+    const targetList = allPatients;
     const exportData = targetList.map((p) => {
       const doc =
         typeof p.doctorId === "object" && p.doctorId !== null ? p.doctorId : null;
@@ -240,9 +222,6 @@ export default function PatientsPage() {
           <PatientTable
             patients={patients}
             showDoctor={true}
-            selectedIds={selectedIds}
-            onSelectToggle={handleSelectToggle}
-            onSelectAllToggle={handleSelectAllToggle}
             onEdit={(patient) => setEditingPatient(patient)}
             onDelete={(patient) => setDeletingPatient(patient)}
           />

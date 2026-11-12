@@ -14,16 +14,16 @@ import * as appointmentService from "@/services/appointment.service";
 export const dynamic = "force-dynamic";
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
-    await connectDB();
     const currentUser = await getCurrentUser();
     if (!currentUser) return unauthorizedError();
+    await connectDB();
 
-    const { id } = params;
+    const { id } = await params;
     const appointment = await appointmentService.getAppointmentById(id);
     if (!appointment) return notFoundError("Appointment not found");
 
@@ -36,11 +36,11 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    await connectDB();
     const currentUser = await getCurrentUser();
     if (!currentUser) return unauthorizedError();
+    await connectDB();
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const parsed = updateAppointmentSchema.safeParse(body);
     if (!parsed.success) {
@@ -63,11 +63,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
-    await connectDB();
     const currentUser = await getCurrentUser();
     if (!currentUser) return unauthorizedError();
+    await connectDB();
 
-    const { id } = params;
+    const { id } = await params;
     const deleted = await appointmentService.deleteAppointment(
       id,
       currentUser.name

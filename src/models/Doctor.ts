@@ -7,6 +7,7 @@ export interface IDoctor extends Document {
   phone: string;
   email: string;
   patientCount: number;
+  seedKey?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +42,7 @@ const DoctorSchema = new Schema<IDoctor>(
       type: Number,
       default: 0,
     },
+    seedKey: { type: String, select: false },
   },
   {
     timestamps: true,
@@ -52,6 +54,7 @@ DoctorSchema.index({ name: "text", specialization: "text", hospital: "text" });
 DoctorSchema.index({ specialization: 1, createdAt: -1 });
 DoctorSchema.index({ hospital: 1, createdAt: -1 });
 DoctorSchema.index({ createdAt: -1 });
+DoctorSchema.index({ seedKey: 1 }, { unique: true, sparse: true });
 
 const Doctor =
   mongoose.models.Doctor || mongoose.model<IDoctor>("Doctor", DoctorSchema);

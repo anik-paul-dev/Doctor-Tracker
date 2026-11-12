@@ -1,7 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { AuthUser, LoginCredentials, RegisterCredentials } from "@/types/auth";
 import { toast } from "sonner";
 
@@ -19,36 +20,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const sessionRequestRef = useRef<Promise<AuthUser | null> | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Check current session on mount
   useEffect(() => {
-    async function loadUser() {
-      try {
-        const res = await fetch("/api/auth/me", { cache: "no-store" });
-        if (res.status === 204) {
-          setUser(null);
-          return;
-        }
-
-        if (res.ok) {
+    const sessionRequest =
+      sessionRequestRef.current ??
+      fetch("/api/auth/me", { cache: "no-store" })
+        .then(async (res) => {
+          if (res.status === 204 || !res.ok) return null;
           const json = await res.json();
-          if (json.success && json.data) {
-            setUser(json.data);
-          } else {
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    }
+          return json.success && json.data ? (json.data as AuthUser) : null;
+        })
+        .catch(() => null);
+    sessionRequestRef.current = sessionRequest;
 
-    loadUser();
+    void sessionRequest.then(setUser).finally(() => setLoading(false));
   }, []);
 
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
@@ -110,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // ignore
     } finally {
       setUser(null);
+      queryClient.clear();
       toast.info("Signed out successfully");
       router.push("/login");
       router.refresh();

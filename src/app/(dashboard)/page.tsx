@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useDashboardStats } from "@/hooks/use-dashboard";
 import { ClinicHealth } from "@/components/dashboard/clinic-health";
@@ -8,11 +9,7 @@ import { SmartInsights } from "@/components/dashboard/smart-insights";
 import { TodaySchedule } from "@/components/dashboard/today-schedule";
 import { LiveActivity } from "@/components/dashboard/live-activity";
 import { StatsCards } from "@/components/dashboard/stats-cards";
-import { PatientTrendChart } from "@/components/dashboard/patient-trend-chart";
-import { ConditionChart } from "@/components/dashboard/condition-chart";
-import { DemographicsChart } from "@/components/dashboard/demographics-chart";
 import { TopDoctorsRoster } from "@/components/dashboard/top-doctors-roster";
-import { SpecializationBarChart } from "@/components/dashboard/specialization-bar-chart";
 import { RecentAdmissions } from "@/components/dashboard/recent-admissions";
 import {
   StatsCardsSkeleton,
@@ -20,6 +17,23 @@ import {
 } from "@/components/shared/loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { Stethoscope, UserPlus, RefreshCw, AlertCircle, Search, Calendar } from "lucide-react";
+
+const PatientTrendChart = dynamic(
+  () => import("@/components/dashboard/patient-trend-chart").then((module) => module.PatientTrendChart),
+  { loading: () => <ChartSkeleton /> }
+);
+const ConditionChart = dynamic(
+  () => import("@/components/dashboard/condition-chart").then((module) => module.ConditionChart),
+  { loading: () => <ChartSkeleton /> }
+);
+const DemographicsChart = dynamic(
+  () => import("@/components/dashboard/demographics-chart").then((module) => module.DemographicsChart),
+  { loading: () => <ChartSkeleton /> }
+);
+const SpecializationBarChart = dynamic(
+  () => import("@/components/dashboard/specialization-bar-chart").then((module) => module.SpecializationBarChart),
+  { loading: () => <ChartSkeleton /> }
+);
 
 export default function DashboardPage() {
   const { data, isLoading, isError, refetch, isFetching } = useDashboardStats();

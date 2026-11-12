@@ -1,7 +1,5 @@
-import connectDB from "@/lib/db";
 import { getCurrentUser, removeTokenCookie } from "@/lib/auth";
 import { successResponse, unauthorizedError, errorResponse } from "@/lib/api-response";
-import * as authService from "@/services/auth.service";
 
 export const dynamic = "force-dynamic";
 
@@ -13,17 +11,15 @@ export async function GET() {
       return unauthorizedError();
     }
 
-    // Avoid a database round trip for anonymous page loads. This endpoint is
-    // called by AuthProvider on every visit, including the public login page.
-    await connectDB();
-
-    const user = await authService.getUserById(currentUser.userId);
-    if (!user) {
-      await removeTokenCookie();
-      return unauthorizedError("User not found");
-    }
-
-    return successResponse(user);
+    // getCurrentUser verifies the signed, HttpOnly session token. Its signed
+    // identity claims are sufficient here; fetching MongoDB on every app load
+    // made the entire dashboard wait for a database round trip.
+    return successResponse({
+      userId: currentUser.userId,
+      email: currentUser.email,
+      name: currentUser.name,
+      role: currentUser.role,
+    });
   } catch (error) {
     console.error("Get current user error:", error);
     return errorResponse("Internal server error");

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { PATIENT_CONDITIONS } from "@/lib/constants";
 import { PatientFilters as FilterType } from "@/types/patient";
 import { Doctor } from "@/types/doctor";
@@ -33,6 +33,24 @@ export function PatientFilters({
 }: PatientFiltersProps) {
   const [datePreset, setDatePreset] = useState<string>("any");
   const [sortValue, setSortValue] = useState<string>("newest");
+  const [searchInput, setSearchInput] = useState(filters.search || "");
+  const onFilterChangeRef = useRef(onFilterChange);
+
+  useEffect(() => {
+    onFilterChangeRef.current = onFilterChange;
+  }, [onFilterChange]);
+
+  useEffect(() => {
+    setSearchInput(filters.search || "");
+  }, [filters.search]);
+
+  useEffect(() => {
+    if (searchInput === (filters.search || "")) return;
+    const timer = window.setTimeout(() => {
+      onFilterChangeRef.current({ search: searchInput, page: 1 });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput, filters.search]);
 
   const handleDatePresetChange = (preset: string) => {
     setDatePreset(preset);
@@ -112,14 +130,15 @@ export function PatientFilters({
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <input
             type="text"
-            value={filters.search || ""}
-            onChange={(e) => onFilterChange({ search: e.target.value, page: 1 })}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search patients..."
             className="w-full h-9 pl-8 pr-3 text-xs rounded-lg border border-border/80 bg-muted/40 hover:bg-muted/60 focus:bg-background focus:outline-none focus:ring-1 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground transition-all"
           />
-          {filters.search && (
+          {searchInput && (
             <button
-              onClick={() => onFilterChange({ search: "", page: 1 })}
+              type="button"
+              onClick={() => setSearchInput("")}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
               <X className="h-3 w-3" />

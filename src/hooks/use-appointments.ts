@@ -14,9 +14,10 @@ interface AppointmentsResponse {
   pagination: PaginationMeta;
 }
 
-export function useAppointments(filters: AppointmentFilters = {}) {
+export function useAppointments(filters: AppointmentFilters = {}, enabled = true) {
   return useQuery<AppointmentsResponse>({
     queryKey: ["appointments", filters],
+    enabled,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters.page) params.set("page", String(filters.page));
