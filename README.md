@@ -205,6 +205,17 @@ The following screenshots show the populated application. The supplied images ar
 - Touch-friendly action buttons and responsive data tables with horizontal scroll capability.
 - Stacked metric cards and responsive charts fitting all phone viewport dimensions (iPhone, Pixel, iPad).
 
+### Extra Features I Built
+
+I wanted Doctor Tracker to feel useful in the rhythm of a real clinic, not just demonstrate create, edit, and delete forms. Alongside the requested doctor, patient, and analytics workflows, I added features that help an administrator see what needs attention and move around the portal quickly:
+
+- **A working appointment planner:** switch between a week calendar and a searchable, filterable list; create, update, reschedule, and manage appointment status from the same page.
+- **A clearer picture of clinic activity:** the dashboard brings together clinic health indicators, data-driven suggestions, today's schedule, recent admissions, and patient activity so administrators can spot changes without opening every record.
+- **More useful ways to read the data:** compare admission trends over 7, 14, or 30 days, and explore patient conditions, demographics, doctor workloads, and specialty distribution through charts.
+- **Contextual notifications:** review schedule items, dashboard insights, and recent record changes in one place, then mark them read or dismiss them.
+- **Quick access across the portal:** use the command search to jump to pages, find doctors and patients, switch themes, or sign out without navigating through menus.
+- **Administrator account controls:** update profile details and change the account password from the settings page, with a light and dark theme available throughout the portal.
+
 ---
 
 ## 6. REST API Reference
