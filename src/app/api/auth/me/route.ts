@@ -1,7 +1,9 @@
 import connectDB from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, removeTokenCookie } from "@/lib/auth";
 import { successResponse, unauthorizedError, errorResponse } from "@/lib/api-response";
 import * as authService from "@/services/auth.service";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
@@ -9,11 +11,13 @@ export async function GET() {
 
     const currentUser = await getCurrentUser();
     if (!currentUser) {
+      await removeTokenCookie();
       return unauthorizedError();
     }
 
     const user = await authService.getUserById(currentUser.userId);
     if (!user) {
+      await removeTokenCookie();
       return unauthorizedError("User not found");
     }
 
