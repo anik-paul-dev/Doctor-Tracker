@@ -99,25 +99,29 @@ export function Sidebar({ className }: { className?: string }) {
       {user && (
         <div className="p-4 border-t bg-muted/20">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 overflow-hidden">
+            <Link
+              href="/settings"
+              className="flex items-center gap-3 overflow-hidden group hover:opacity-85 transition-opacity flex-1 min-w-0"
+              title="View Profile Settings"
+            >
               <Avatar className="h-9 w-9 border border-border shrink-0">
                 <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
                   {getInitials(user.name || "Admin")}
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col truncate">
-                <span className="text-xs font-semibold truncate text-foreground">
+                <span className="text-xs font-semibold truncate text-foreground group-hover:text-primary transition-colors">
                   {user.name}
                 </span>
                 <span className="text-[11px] text-muted-foreground truncate">
                   {user.email}
                 </span>
               </div>
-            </div>
+            </Link>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0 cursor-pointer"
               onClick={() => logout()}
               title="Log out"
             >

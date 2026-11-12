@@ -109,6 +109,12 @@ export function CommandSearch() {
     label: "Patients",
     action: () => navigate("/patients"),
   });
+  items.push({
+    type: "nav",
+    id: "nav-settings",
+    label: "Profile Settings",
+    action: () => navigate("/settings"),
+  });
 
   // 2. Doctor results
   doctors.forEach((d) =>
@@ -306,6 +312,18 @@ export function CommandSearch() {
                 <Users className="h-4 w-4 text-teal-400 shrink-0" />
                 <span>Patients</span>
               </button>
+              <button
+                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  activeIndex === 4
+                    ? "bg-accent/80 text-accent-foreground font-semibold"
+                    : "text-foreground hover:bg-muted/60"
+                }`}
+                onClick={() => navigate("/settings")}
+                onMouseEnter={() => setActiveIndex(4)}
+              >
+                <UserIcon className="h-4 w-4 text-teal-400 shrink-0" />
+                <span>Profile Settings</span>
+              </button>
             </div>
           </div>
 
@@ -317,7 +335,7 @@ export function CommandSearch() {
               </p>
               <div className="space-y-0.5">
                 {doctors.map((doc, i) => {
-                  const idx = 4 + i;
+                  const idx = 5 + i;
                   return (
                     <button
                       key={doc._id}
@@ -355,7 +373,7 @@ export function CommandSearch() {
               </p>
               <div className="space-y-0.5">
                 {patients.map((pat, i) => {
-                  const idx = 4 + doctors.length + i;
+                  const idx = 5 + doctors.length + i;
                   const dotStyle = CONDITION_DOT_STYLES[pat.condition] || DEFAULT_DOT_STYLE;
                   return (
                     <button
@@ -398,12 +416,12 @@ export function CommandSearch() {
             <div className="space-y-0.5">
               <button
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                  activeIndex === 4 + doctors.length + patients.length
+                  activeIndex === 5 + doctors.length + patients.length
                     ? "bg-accent/80 text-accent-foreground font-medium"
                     : "text-foreground hover:bg-muted/60"
                 }`}
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                onMouseEnter={() => setActiveIndex(4 + doctors.length + patients.length)}
+                onMouseEnter={() => setActiveIndex(5 + doctors.length + patients.length)}
               >
                 {theme === "dark" ? (
                   <Sun className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -414,12 +432,12 @@ export function CommandSearch() {
               </button>
               <button
                 className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors ${
-                  activeIndex === 5 + doctors.length + patients.length
+                  activeIndex === 6 + doctors.length + patients.length
                     ? "bg-destructive/15 text-destructive font-medium"
                     : ""
                 }`}
                 onClick={() => logout()}
-                onMouseEnter={() => setActiveIndex(5 + doctors.length + patients.length)}
+                onMouseEnter={() => setActiveIndex(6 + doctors.length + patients.length)}
               >
                 <LogOut className="h-4 w-4 shrink-0" />
                 <span>Sign out</span>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
 import {
   DropdownMenu,
@@ -25,7 +26,7 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full cursor-pointer">
           <Avatar className="h-10 w-10 border border-border">
             <AvatarFallback className="bg-primary/10 text-primary font-semibold">
               {initials}
@@ -48,9 +49,11 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled className="cursor-default">
-          <UserIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-          <span>Profile Settings</span>
+        <DropdownMenuItem asChild className="cursor-pointer">
+          <Link href="/settings" className="flex items-center w-full">
+            <UserIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+            <span>Profile Settings</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -64,4 +67,3 @@ export function UserMenu() {
     </DropdownMenu>
   );
 }
-

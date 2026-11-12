@@ -3,9 +3,10 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Menu, Moon, Sun, Search, Bell, ChevronRight } from "lucide-react";
+import { Menu, Moon, Sun, Search, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "./user-menu";
+import { NotificationsPopover } from "./notifications-popover";
 import { CommandSearch } from "@/components/shared/command-search";
 
 interface HeaderProps {
@@ -22,6 +23,7 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
     if (pathname === "/doctors") return "Doctors";
     if (pathname.startsWith("/doctors/")) return "Doctor Profile";
     if (pathname === "/patients") return "Patients";
+    if (pathname === "/settings") return "Profile Settings";
     return "Dashboard";
   };
 
@@ -63,27 +65,14 @@ export function Header({ onOpenMobileMenu }: HeaderProps) {
           </kbd>
         </button>
 
-        {/* Notification Bell with Badge matching Image 1 & 3 */}
-        <div className="relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 text-muted-foreground hover:text-foreground relative"
-            title="Notifications"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="sr-only">Notifications</span>
-          </Button>
-          <span className="pointer-events-none absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white shadow-2xs">
-            8
-          </span>
-        </div>
+        {/* Notification Bell with interactive Popover */}
+        <NotificationsPopover />
 
         {/* Theme Toggle */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 text-muted-foreground hover:text-foreground"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground cursor-pointer"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           title="Toggle theme"
         >

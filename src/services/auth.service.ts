@@ -53,3 +53,74 @@ export async function getUserById(id: string) {
   const user = await User.findById(id).select("-password").lean();
   return user;
 }
+
+export interface SafeUser {
+  _id: unknown;
+  name: string;
+  email: string;
+  role: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export async function updateUserProfile(
+  id: string,
+  data: { name?: string; email?: string }
+): Promise<SafeUser> {
+  await connectDB();
+
+  if (data.email) {
+    const existing = await User.findOne({
+      email: data.email.toLowerCase(),
+      _id: { $ne: id },
+    }).lean();
+    if (existing) {
+      throw new Error("Email is already in use by another account");
+    }
+  }
+
+  const updateFields: Record<string, string> = {};
+  if (data.name?.trim()) updateFields.name = data.name.trim();
+  if (data.email?.trim()) updateFields.email = data.email.toLowerCase().trim();
+
+  const user = (await User.findByIdAndUpdate(
+    id,
+    { $set: updateFields },
+    { new: true, runValidators: true }
+  )
+    .select("-password")
+    .lean()) as SafeUser | null;
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  return user;
+}
+
+export async function changeUserPassword(
+  id: string,
+  currentPass: string,
+  newPass: string
+) {
+  await connectDB();
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const isMatch = await bcrypt.compare(currentPass, user.password);
+  if (!isMatch) {
+    throw new Error("Current password is incorrect");
+  }
+
+  if (newPass.length < 6) {
+    throw new Error("New password must be at least 6 characters");
+  }
+
+  user.password = await bcrypt.hash(newPass, 12);
+  await user.save();
+
+  return true;
+}
