@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import connectDB from "@/lib/db";
 import { registerSchema } from "@/lib/validations";
-import { successResponse, validationError, errorResponse, conflictError } from "@/lib/api-response";
+import { successResponse, validationError, errorResponse, conflictError, readJsonBody } from "@/lib/api-response";
 import { signToken } from "@/lib/auth";
 import * as authService from "@/services/auth.service";
 
@@ -9,8 +9,9 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const body = await request.json();
-    const parsed = registerSchema.safeParse(body);
+    const bodyResult = await readJsonBody(request);
+    if (bodyResult.error) return bodyResult.error;
+    const parsed = registerSchema.safeParse(bodyResult.data);
 
     if (!parsed.success) {
       return validationError("Validation failed", parsed.error.flatten().fieldErrors);

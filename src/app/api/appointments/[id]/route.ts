@@ -7,6 +7,7 @@ import {
   validationError,
   notFoundError,
   errorResponse,
+  readJsonBody,
 } from "@/lib/api-response";
 import { updateAppointmentSchema } from "@/lib/validations";
 import * as appointmentService from "@/services/appointment.service";
@@ -41,8 +42,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     await connectDB();
 
     const { id } = await params;
-    const body = await request.json();
-    const parsed = updateAppointmentSchema.safeParse(body);
+    const bodyResult = await readJsonBody(request);
+    if (bodyResult.error) return bodyResult.error;
+    const parsed = updateAppointmentSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
       return validationError("Validation failed", parsed.error.format());
     }

@@ -2,10 +2,18 @@
 const nextConfig = {
   // Do not emit framework agent-instruction files into this application repo.
   agentRules: false,
-  experimental: {
-    // lucide-react is a large barrel export; optimize its named icon imports
-    // so the first dev compile only processes the icons used by each route.
-    optimizePackageImports: ["lucide-react"],
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+        ],
+      },
+    ];
   },
 };
 

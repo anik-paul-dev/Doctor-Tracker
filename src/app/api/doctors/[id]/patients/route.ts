@@ -8,6 +8,7 @@ import {
   validationError,
   unauthorizedError,
   errorResponse,
+  readJsonBody,
 } from "@/lib/api-response";
 import * as patientService from "@/services/patient.service";
 
@@ -63,10 +64,15 @@ export async function POST(
     await connectDB();
 
     const { id: doctorId } = await params;
-    const body = await request.json();
+    const bodyResult = await readJsonBody(request);
+    if (bodyResult.error) return bodyResult.error;
+    const body = bodyResult.data;
 
     // Set doctorId from params
-    const dataWithDoctor = { ...body, doctorId };
+    const dataWithDoctor = {
+      ...(typeof body === "object" && body !== null ? body : {}),
+      doctorId,
+    };
     const parsed = createPatientSchema.safeParse(dataWithDoctor);
 
     if (!parsed.success) {

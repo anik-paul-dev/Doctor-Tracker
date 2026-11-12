@@ -40,8 +40,8 @@ export function AppointmentDialog({
 }: AppointmentDialogProps) {
   const isEditing = Boolean(appointment);
 
-  const { data: doctorsData } = useDoctors({ limit: 100 });
-  const { data: patientsData } = usePatients({ limit: 100 });
+  const { data: doctorsData } = useDoctors({ limit: 100 }, open);
+  const { data: patientsData } = usePatients({ limit: 100 }, open);
 
   const doctors = doctorsData?.doctors || [];
   const patients = patientsData?.patients || [];

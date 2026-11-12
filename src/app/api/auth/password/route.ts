@@ -6,6 +6,7 @@ import {
   unauthorizedError,
   validationError,
   errorResponse,
+  readJsonBody,
 } from "@/lib/api-response";
 import * as authService from "@/services/auth.service";
 import { z } from "zod";
@@ -23,8 +24,9 @@ export async function PUT(request: NextRequest) {
     if (!currentUser) return unauthorizedError();
     await connectDB();
 
-    const body = await request.json();
-    const parsed = passwordSchema.safeParse(body);
+    const bodyResult = await readJsonBody(request);
+    if (bodyResult.error) return bodyResult.error;
+    const parsed = passwordSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
       return validationError("Validation failed", parsed.error.format());
     }
@@ -37,9 +39,11 @@ export async function PUT(request: NextRequest) {
 
     return successResponse({ message: "Password updated successfully" });
   } catch (error) {
+    if (error instanceof Error && error.message === "Current password is incorrect") {
+      return validationError(error.message);
+    }
     console.error("PUT /api/auth/password error:", error);
-    const message = error instanceof Error ? error.message : "Failed to update password";
-    return errorResponse(message);
+    return errorResponse("Failed to update password");
   }
 }
 

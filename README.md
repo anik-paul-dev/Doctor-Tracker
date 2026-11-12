@@ -74,6 +74,8 @@ Follow these steps to set up and run the Doctor Tracker full-stack application o
 
 Doctor Tracker employs a **Full-Stack Monorepo Architecture** using the Next.js 16 App Router with strict multi-layered decoupling between presentation, client caching, route handlers, service business logic, and database persistence.
 
+**Chosen specification option:** Next.js provides both the frontend and backend. The UI calls REST endpoints implemented as Next.js Route Handlers, which call service modules and Mongoose models backed by MongoDB. This repository does not run a separate Express server; the specification lists integrated Next.js and a separate Next.js + Express deployment as alternatives.
+
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        PRESENTATION & CLIENT LAYER                     │
@@ -90,7 +92,7 @@ Doctor Tracker employs a **Full-Stack Monorepo Architecture** using the Next.js 
 │            │   TanStack Query v5 (React Query Cache)      │            │
 │            │   - Stale-while-revalidate caching           │            │
 │            │   - Query invalidation on mutations          │            │
-│            │   - Automatic debounced background refetch   │            │
+│            │   - Cached server data and mutation refresh   │            │
 │            └──────────────────────┬───────────────────────┘            │
 └───────────────────────────────────┼────────────────────────────────────┘
                                     │ HTTP (RESTful JSON + Cookie Auth)
@@ -98,7 +100,7 @@ Doctor Tracker employs a **Full-Stack Monorepo Architecture** using the Next.js 
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        BACKEND & API SERVICES LAYER                    │
 │                                                                        │
-│   Next.js Edge/Node Route Handlers (/api/*)                            │
+│   Next.js Node.js Route Handlers (/api/*)                              │
 │   ┌────────────────────────────────────────────────────────────────┐   │
 │   │ API Route Handlers: JWT Verification (httpOnly Cookies)        │   │
 │   │ Input Validation: Zod Type-Safe Schema Guard                   │   │
@@ -113,7 +115,7 @@ Doctor Tracker employs a **Full-Stack Monorepo Architecture** using the Next.js 
 │                                   ▼                                    │
 │   ┌────────────────────────────────────────────────────────────────┐   │
 │   │ Data Access Layer (Mongoose 8 Singleton Pool)                  │   │
-│   │ Models: User, Doctor, Patient                                  │   │
+│   │ Models: User, Doctor, Patient, Appointment, Activity           │   │
 │   │ Indexes: Text Index, Compound Spec/Hospital, Date Timestamps   │   │
 │   └───────────────────────────────┬────────────────────────────────┘   │
 └───────────────────────────────────┼────────────────────────────────────┘
@@ -140,19 +142,21 @@ Doctor Tracker employs a **Full-Stack Monorepo Architecture** using the Next.js 
 - **Problem Context**: Doctor Tracker is a data-intensive administrative dashboard requiring frequent server synchronization (paginated tables, live search, filtered aggregations, chart updates), rather than deep multi-step client UI state.
 - **Why TanStack Query Was Chosen**:
   1. **Server-State vs. Client-State Separation**: Redux requires extensive boilerplate (slices, reducers, thunks, selectors, actions) to manage what is ultimately just remote server data. TanStack Query treats server data as a cache, handling loading, error, deduplication, and stale timing out of the box.
-  2. **Cache Invalidation & Optimistic Consistency**: When adding or discharging a patient under a doctor, a single `queryClient.invalidateQueries(["doctors", "doctor-patients"])` call ensures the doctor list, the specific doctor profile, the patient directory, and dashboard analytics sync immediately without manual state stitching.
-  3. **Reduced Bundle Size & Performance**: Eliminating Redux Toolkit shaved ~40kB off the client bundle, reducing initial JavaScript parse and hydration time.
+  2. **Cache Invalidation & Consistency**: Patient mutations invalidate patient, doctor, doctor-patient, and dashboard queries so the related views refresh from the database.
+  3. **Focused State Management**: TanStack Query handles remote server data; React state handles local UI state such as dialogs, filters, and selected views. This avoids a second global store for data already owned by the server.
 
-### Decision 2: Next.js 16 Unified Full-Stack Architecture over Separate Standalone Express Server
-- **Problem Context**: The interview specification allowed either a full-stack Next.js app or a decoupled Next.js client + Express backend.
+### Decision 2: Integrated Next.js Route Handlers over a Separate Express Server
+- **Problem Context**: The interview specification allows either an integrated Next.js application or a separate Next.js frontend with an Express backend. This repository uses the integrated Next.js option.
 - **Why Full-Stack Next.js 16 Was Chosen**:
   1. **End-to-End TypeScript Type Safety**: Both frontend forms and backend API route handlers share the exact same Zod validation schemas (`CreateDoctorInput`, `CreatePatientInput`) and TypeScript interfaces (`Doctor`, `Patient`, `DashboardData`). Any database schema change produces immediate compile-time errors in the frontend.
-  2. **Zero-Configuration Deployment & Cold-Start Optimization**: Next.js route handlers run in lightweight serverless containers with singleton Mongoose connection caching (`cached.conn`), eliminating the need to configure and monitor a separate Node/Express server instance, CORS policies, or reverse proxies.
-  3. **High Security Standards**: HttpOnly cookies are set and read natively within the same origin, mitigating Cross-Site Scripting (XSS) risks without requiring cross-domain cookie forwarding.
+  2. **One Same-Origin API**: Route Handlers expose the REST API from the same app, avoiding a separately deployed API origin and its CORS configuration.
+  3. **Server-Side Persistence**: Mongoose and database credentials stay in server-side modules; the browser communicates through authenticated JSON endpoints.
 
 ---
 
 ## 5. Visual Evidence & UI Showcase
+
+The descriptions below document the intended desktop and responsive layouts. Actual desktop and mobile screenshots still need to be captured from a running, populated instance before submission.
 
 ### Desktop View Highlights
 - **Executive Operations Dashboard**: 4 key statistical metric cards with month-over-month growth indicators, monthly registration area trends, specialization donut distribution, and physician workload bar chart.

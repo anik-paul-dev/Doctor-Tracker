@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import {
   useDoctors,
   useCreateDoctor,
@@ -10,11 +11,9 @@ import {
 import { DoctorFilters } from "@/components/doctors/doctor-filters";
 import { DoctorTable } from "@/components/doctors/doctor-table";
 import { DoctorCards } from "@/components/doctors/doctor-cards";
-import { DoctorForm } from "@/components/doctors/doctor-form";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +28,15 @@ import { exportToCsv } from "@/lib/export";
 import { formatDate } from "@/lib/utils";
 import { Plus, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
+
+const DoctorForm = dynamic(
+  () => import("@/components/doctors/doctor-form").then((module) => module.DoctorForm),
+  { loading: () => null }
+);
+const ConfirmDialog = dynamic(
+  () => import("@/components/shared/confirm-dialog").then((module) => module.ConfirmDialog),
+  { loading: () => null }
+);
 
 export default function DoctorsPage() {
   const [filters, setFilters] = useState<FilterType>({
@@ -216,11 +224,11 @@ export default function DoctorsPage() {
               Enter the medical professional&apos;s details and hospital credentials.
             </DialogDescription>
           </DialogHeader>
-          <DoctorForm
+          {createDialogOpen && <DoctorForm
             onSubmit={handleCreateSubmit}
             onCancel={() => setCreateDialogOpen(false)}
             loading={createMutation.isPending}
-          />
+          />}
         </DialogContent>
       </Dialog>
 
@@ -248,7 +256,7 @@ export default function DoctorsPage() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
+      {deletingDoctor && <ConfirmDialog
         open={!!deletingDoctor}
         onOpenChange={(open) => !open && setDeletingDoctor(null)}
         title="Delete Doctor Record?"
@@ -256,7 +264,7 @@ export default function DoctorsPage() {
         confirmText="Yes, Delete Doctor"
         loading={deleteMutation.isPending}
         onConfirm={handleDeleteConfirm}
-      />
+      />}
     </div>
   );
 }

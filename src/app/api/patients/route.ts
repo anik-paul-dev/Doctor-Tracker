@@ -8,6 +8,7 @@ import {
   validationError,
   unauthorizedError,
   errorResponse,
+  readJsonBody,
 } from "@/lib/api-response";
 import * as patientService from "@/services/patient.service";
 
@@ -51,8 +52,9 @@ export async function POST(request: NextRequest) {
     }
     await connectDB();
 
-    const body = await request.json();
-    const parsed = createPatientSchema.safeParse(body);
+    const bodyResult = await readJsonBody(request);
+    if (bodyResult.error) return bodyResult.error;
+    const parsed = createPatientSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
       return validationError("Validation failed", parsed.error.flatten().fieldErrors);
     }

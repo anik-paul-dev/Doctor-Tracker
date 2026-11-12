@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import {
   useAppointments,
   useCreateAppointment,
@@ -9,8 +10,6 @@ import {
 } from "@/hooks/use-appointments";
 import { AppointmentCalendar } from "@/components/appointments/appointment-calendar";
 import { AppointmentTable } from "@/components/appointments/appointment-table";
-import { AppointmentDialog } from "@/components/appointments/appointment-dialog";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { SearchInput } from "@/components/shared/search-input";
 import {
@@ -24,6 +23,15 @@ import { Button } from "@/components/ui/button";
 import { CalendarPlus, Calendar, ListFilter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Appointment, AppointmentFilters, CreateAppointmentInput, UpdateAppointmentInput } from "@/types/appointment";
+
+const AppointmentDialog = dynamic(
+  () => import("@/components/appointments/appointment-dialog").then((module) => module.AppointmentDialog),
+  { loading: () => null }
+);
+const ConfirmDialog = dynamic(
+  () => import("@/components/shared/confirm-dialog").then((module) => module.ConfirmDialog),
+  { loading: () => null }
+);
 
 export default function AppointmentsPage() {
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
@@ -223,15 +231,15 @@ export default function AppointmentsPage() {
       )}
 
       {/* Appointment Edit / Create Modal */}
-      <AppointmentDialog
+      {dialogOpen && <AppointmentDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         appointment={editingAppointment}
         onSave={handleSave}
-      />
+      />}
 
       {/* Delete Confirmation */}
-      <ConfirmDialog
+      {deletingAppointment && <ConfirmDialog
         open={Boolean(deletingAppointment)}
         onOpenChange={(open) => !open && setDeletingAppointment(null)}
         title="Delete appointment"
@@ -239,7 +247,7 @@ export default function AppointmentsPage() {
         confirmText="Delete"
         variant="destructive"
         onConfirm={handleDeleteConfirm}
-      />
+      />}
     </div>
   );
 }

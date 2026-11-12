@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import {
   usePatients,
@@ -11,11 +12,9 @@ import {
 import { useDoctors } from "@/hooks/use-doctors";
 import { PatientFilters } from "@/components/patients/patient-filters";
 import { PatientTable } from "@/components/patients/patient-table";
-import { PatientForm } from "@/components/patients/patient-form";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +29,15 @@ import { exportToCsv } from "@/lib/export";
 import { formatDate } from "@/lib/utils";
 import { Plus, Users } from "lucide-react";
 import { toast } from "sonner";
+
+const PatientForm = dynamic(
+  () => import("@/components/patients/patient-form").then((module) => module.PatientForm),
+  { loading: () => null }
+);
+const ConfirmDialog = dynamic(
+  () => import("@/components/shared/confirm-dialog").then((module) => module.ConfirmDialog),
+  { loading: () => null }
+);
 
 export default function PatientsPage() {
   const searchParams = useSearchParams();
@@ -66,7 +74,9 @@ export default function PatientsPage() {
   const [deletingPatient, setDeletingPatient] = useState<Patient | null>(null);
 
   const { data, isLoading } = usePatients(filters);
-  const { data: doctorsData } = useDoctors({ limit: 100 });
+  const formOpen = createDialogOpen || Boolean(editingPatient);
+  const { data: doctorAvailability } = useDoctors({ limit: 1 });
+  const { data: doctorsData } = useDoctors({ limit: 100 }, formOpen);
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient();
   const deleteMutation = useDeletePatient();
@@ -156,6 +166,7 @@ export default function PatientsPage() {
   const patients = data?.patients || [];
   const pagination = data?.pagination;
   const availableDoctors = doctorsData?.doctors || [];
+  const hasDoctors = (doctorAvailability?.pagination.total ?? 0) > 0;
   const totalPatients = pagination?.total ?? patients.length;
 
   return (
@@ -174,9 +185,9 @@ export default function PatientsPage() {
         <Button
           onClick={() => setCreateDialogOpen(true)}
           className="h-10 text-sm font-semibold shadow-sm"
-          disabled={availableDoctors.length === 0}
+          disabled={!hasDoctors}
           title={
-            availableDoctors.length === 0
+            !hasDoctors
               ? "Please add a doctor first before registering patients"
               : undefined
           }
@@ -209,7 +220,7 @@ export default function PatientsPage() {
               : "No patient records have been added to the system yet."
           }
           action={
-            availableDoctors.length > 0 ? (
+            hasDoctors ? (
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Register First Patient
@@ -247,12 +258,16 @@ export default function PatientsPage() {
               Assign the patient to an attending doctor and specify their condition.
             </DialogDescription>
           </DialogHeader>
-          <PatientForm
-            doctors={availableDoctors}
-            onSubmit={handleCreateSubmit}
-            onCancel={() => setCreateDialogOpen(false)}
-            loading={createMutation.isPending}
-          />
+          {createDialogOpen && (doctorsData ? (
+            <PatientForm
+              doctors={availableDoctors}
+              onSubmit={handleCreateSubmit}
+              onCancel={() => setCreateDialogOpen(false)}
+              loading={createMutation.isPending}
+            />
+          ) : (
+            <div role="status" className="h-64 animate-pulse rounded-lg bg-muted/40" />
+          ))}
         </DialogContent>
       </Dialog>
 
@@ -281,7 +296,7 @@ export default function PatientsPage() {
       </Dialog>
 
       {/* Delete Patient Confirmation Dialog */}
-      <ConfirmDialog
+      {deletingPatient && <ConfirmDialog
         open={!!deletingPatient}
         onOpenChange={(open) => !open && setDeletingPatient(null)}
         title="Delete Patient Record?"
@@ -289,7 +304,7 @@ export default function PatientsPage() {
         confirmText="Yes, Delete Patient"
         loading={deleteMutation.isPending}
         onConfirm={handleDeleteConfirm}
-      />
+      />}
     </div>
   );
 }

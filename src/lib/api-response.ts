@@ -71,6 +71,17 @@ export function validationError(message: string, details?: unknown) {
   return errorResponse(message, "VALIDATION_ERROR", 400, details);
 }
 
+export async function readJsonBody(request: Request): Promise<
+  | { data: unknown; error?: never }
+  | { data?: never; error: ReturnType<typeof validationError> }
+> {
+  try {
+    return { data: await request.json() };
+  } catch {
+    return { error: validationError("Request body must contain valid JSON") };
+  }
+}
+
 export function unauthorizedError(message: string = "Unauthorized") {
   return errorResponse(message, "UNAUTHORIZED", 401);
 }

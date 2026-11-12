@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useDoctor, useDoctorPatients } from "@/hooks/use-doctors";
@@ -10,11 +11,9 @@ import {
   useDeletePatient,
 } from "@/hooks/use-patients";
 import { PatientTable } from "@/components/patients/patient-table";
-import { PatientForm } from "@/components/patients/patient-form";
 import { DataTablePagination } from "@/components/shared/data-table-pagination";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { SearchInput } from "@/components/shared/search-input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -40,6 +39,15 @@ import {
 import { formatDate, getInitials } from "@/lib/utils";
 import { Patient, PatientFilters } from "@/types/patient";
 import { CreatePatientInput } from "@/lib/validations";
+
+const PatientForm = dynamic(
+  () => import("@/components/patients/patient-form").then((module) => module.PatientForm),
+  { loading: () => null }
+);
+const ConfirmDialog = dynamic(
+  () => import("@/components/shared/confirm-dialog").then((module) => module.ConfirmDialog),
+  { loading: () => null }
+);
 
 export default function DoctorDetailPage() {
   const params = useParams();
@@ -271,12 +279,12 @@ export default function DoctorDetailPage() {
               Assign a new patient under {doctor.name} ({doctor.specialization}).
             </DialogDescription>
           </DialogHeader>
-          <PatientForm
+          {addPatientOpen && <PatientForm
             defaultDoctorId={doctorId}
             onSubmit={handleCreatePatientSubmit}
             onCancel={() => setAddPatientOpen(false)}
             loading={createPatientMutation.isPending}
-          />
+          />}
         </DialogContent>
       </Dialog>
 
@@ -305,7 +313,7 @@ export default function DoctorDetailPage() {
       </Dialog>
 
       {/* Delete Patient Confirmation Dialog */}
-      <ConfirmDialog
+      {deletingPatient && <ConfirmDialog
         open={!!deletingPatient}
         onOpenChange={(open) => !open && setDeletingPatient(null)}
         title="Discharge / Delete Patient?"
@@ -313,7 +321,7 @@ export default function DoctorDetailPage() {
         confirmText="Yes, Delete Patient"
         loading={deletePatientMutation.isPending}
         onConfirm={handleDeletePatientConfirm}
-      />
+      />}
     </div>
   );
 }

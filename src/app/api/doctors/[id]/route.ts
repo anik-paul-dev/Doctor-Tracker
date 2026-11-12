@@ -8,6 +8,7 @@ import {
   unauthorizedError,
   notFoundError,
   errorResponse,
+  readJsonBody,
 } from "@/lib/api-response";
 import * as doctorService from "@/services/doctor.service";
 
@@ -48,8 +49,9 @@ export async function PUT(
     await connectDB();
 
     const { id } = await params;
-    const body = await request.json();
-    const parsed = updateDoctorSchema.safeParse(body);
+    const bodyResult = await readJsonBody(request);
+    if (bodyResult.error) return bodyResult.error;
+    const parsed = updateDoctorSchema.safeParse(bodyResult.data);
 
     if (!parsed.success) {
       return validationError("Validation failed", parsed.error.flatten().fieldErrors);

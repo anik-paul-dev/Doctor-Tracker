@@ -10,9 +10,10 @@ interface PatientsResponse {
   pagination: PaginationMeta;
 }
 
-export function usePatients(filters: PatientFilters = {}) {
+export function usePatients(filters: PatientFilters = {}, enabled = true) {
   return useQuery<PatientsResponse>({
     queryKey: ["patients", filters],
+    enabled,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters.page) params.set("page", String(filters.page));

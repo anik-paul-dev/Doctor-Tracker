@@ -5,7 +5,9 @@ import {
   successResponse,
   unauthorizedError,
   validationError,
+  conflictError,
   errorResponse,
+  readJsonBody,
 } from "@/lib/api-response";
 import * as authService from "@/services/auth.service";
 import { z } from "zod";
@@ -23,8 +25,9 @@ export async function PUT(request: NextRequest) {
     if (!currentUser) return unauthorizedError();
     await connectDB();
 
-    const body = await request.json();
-    const parsed = profileSchema.safeParse(body);
+    const bodyResult = await readJsonBody(request);
+    if (bodyResult.error) return bodyResult.error;
+    const parsed = profileSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
       return validationError("Validation failed", parsed.error.format());
     }
@@ -45,9 +48,11 @@ export async function PUT(request: NextRequest) {
 
     return successResponse(updatedUser);
   } catch (error) {
+    if (error instanceof Error && error.message === "Email is already in use by another account") {
+      return conflictError(error.message);
+    }
     console.error("PUT /api/auth/profile error:", error);
-    const message = error instanceof Error ? error.message : "Failed to update profile";
-    return errorResponse(message);
+    return errorResponse("Failed to update profile");
   }
 }
 

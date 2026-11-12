@@ -7,6 +7,7 @@ import {
   unauthorizedError,
   validationError,
   errorResponse,
+  readJsonBody,
 } from "@/lib/api-response";
 import { appointmentQuerySchema, createAppointmentSchema } from "@/lib/validations";
 import * as appointmentService from "@/services/appointment.service";
@@ -48,8 +49,9 @@ export async function POST(request: NextRequest) {
     if (!currentUser) return unauthorizedError();
     await connectDB();
 
-    const body = await request.json();
-    const parsed = createAppointmentSchema.safeParse(body);
+    const bodyResult = await readJsonBody(request);
+    if (bodyResult.error) return bodyResult.error;
+    const parsed = createAppointmentSchema.safeParse(bodyResult.data);
     if (!parsed.success) {
       return validationError("Validation failed", parsed.error.format());
     }
