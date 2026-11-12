@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn, formatDate, generateAvatarColor } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import type { RecentAdmission } from "@/types/dashboard";
 
 const BADGE_COLOR_PALETTES = [
@@ -88,7 +88,6 @@ export function RecentAdmissions({ data }: RecentAdmissionsProps) {
               const cleanDoctor = admission.doctorName.startsWith("Dr.")
                 ? admission.doctorName
                 : `Dr. ${admission.doctorName}`;
-              const avatarBg = generateAvatarColor(admission.patientName);
 
               return (
                 <div
@@ -96,13 +95,8 @@ export function RecentAdmissions({ data }: RecentAdmissionsProps) {
                   className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    {/* Colorful Avatar Circle */}
-                    <div
-                      className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold shadow-sm",
-                        avatarBg
-                      )}
-                    >
+                    {/* Styled Avatar Badge matching Doctor page */}
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-950/70 border border-teal-800/80 text-teal-300 font-bold text-xs shadow-2xs">
                       {admission.patientInitials}
                     </div>
                     {/* Name & subtitle */}

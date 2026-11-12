@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Patient } from "@/types/patient";
-import { formatDate, formatRelativeTime, getInitials, generateAvatarColor, cn } from "@/lib/utils";
+import { formatDate, formatRelativeTime, getInitials, cn } from "@/lib/utils";
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
 
 interface PatientTableProps {
@@ -143,12 +143,7 @@ export function PatientTable({
                   {/* Patient Name & Details */}
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white text-xs font-bold shadow-2xs",
-                          generateAvatarColor(patient.name)
-                        )}
-                      >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-950/70 border border-teal-800/80 text-teal-300 font-bold text-xs shadow-2xs">
                         {initials}
                       </div>
                       <div className="flex flex-col min-w-0">

@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Stethoscope } from "lucide-react";
-import { cn, getInitials, generateAvatarColor } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
 import type { PatientsPerDoctor } from "@/types/dashboard";
 
 interface TopDoctorsRosterProps {
@@ -50,12 +50,7 @@ export function TopDoctorsRoster({ data }: TopDoctorsRosterProps) {
                     {i + 1}
                   </span>
                   {/* Avatar */}
-                  <div
-                    className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold shadow-sm",
-                      generateAvatarColor(doc.doctorName)
-                    )}
-                  >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-teal-950/70 border border-teal-800/80 text-teal-300 font-bold text-xs shadow-2xs">
                     {getInitials(doc.doctorName)}
                   </div>
                   {/* Middle: Doctor Name + Progress bar below */}

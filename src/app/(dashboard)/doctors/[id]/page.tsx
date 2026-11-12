@@ -139,8 +139,8 @@ export default function DoctorDetailPage() {
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 border-2 border-primary/20 shadow-sm">
-                <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+              <Avatar className="h-16 w-16 border-2 border-teal-800/80 shadow-sm rounded-2xl">
+                <AvatarFallback className="bg-teal-950/70 text-teal-300 text-xl font-bold rounded-2xl">
                   {initials}
                 </AvatarFallback>
               </Avatar>

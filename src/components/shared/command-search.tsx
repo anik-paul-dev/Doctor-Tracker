@@ -347,7 +347,7 @@ export function CommandSearch() {
                       onClick={() => navigate(`/doctors/${doc._id}`)}
                       onMouseEnter={() => setActiveIndex(idx)}
                     >
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-950/80 border border-teal-800/60 text-teal-300 text-xs font-bold">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-teal-950/70 border border-teal-800/80 text-teal-300 text-xs font-bold">
                         {getInitials(doc.name)}
                       </div>
                       <div className="flex flex-col items-start min-w-0">
@@ -387,7 +387,9 @@ export function CommandSearch() {
                       onMouseEnter={() => setActiveIndex(idx)}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <UserIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-teal-950/70 border border-teal-800/80 text-teal-300 text-xs font-bold">
+                          {getInitials(pat.name)}
+                        </div>
                         <span className="font-semibold text-foreground text-sm truncate">
                           {pat.name}
                         </span>

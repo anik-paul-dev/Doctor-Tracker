@@ -27,22 +27,8 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function generateAvatarColor(name: string): string {
-  const colors = [
-    "bg-teal-500",
-    "bg-blue-500",
-    "bg-purple-500",
-    "bg-amber-500",
-    "bg-rose-500",
-    "bg-emerald-500",
-    "bg-indigo-500",
-    "bg-cyan-500",
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
+export function generateAvatarColor(): string {
+  return "bg-teal-950/70 border border-teal-800/80 text-teal-300";
 }
 
 export function sleep(ms: number): Promise<void> {
