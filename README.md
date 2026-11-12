@@ -12,6 +12,8 @@
 
 **Doctor Tracker** is an administrative healthcare portal for physician directories, patient assignments, appointments, and clinical workload analytics. Built with Next.js 16 and MongoDB Atlas, it uses paginated queries, indexed filters, and client-side caching to keep navigation responsive while keeping records in the database.
 
+**Live demo:** [doctor-tracker-eight-beryl.vercel.app](https://doctor-tracker-eight-beryl.vercel.app/) · **Source code:** [GitHub repository](https://github.com/anik-paul-dev/Doctor-Tracker)
+
 ---
 
 ## 2. Setup Guide
@@ -27,7 +29,7 @@ Follow these steps to set up and run the Doctor Tracker full-stack application o
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/doctor-tracker.git
+   git clone https://github.com/anik-paul-dev/Doctor-Tracker.git
    cd doctor-tracker
    ```
 
@@ -46,7 +48,7 @@ Follow these steps to set up and run the Doctor Tracker full-stack application o
    ```env
    MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/doctor-tracker?retryWrites=true&w=majority
    JWT_SECRET=your-secure-64-character-random-hex-string
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   ADMIN_REGISTRATION_ENABLED=false
    ```
 
 4. **Seed the Database (Optional but Recommended):**
@@ -67,6 +69,23 @@ Follow these steps to set up and run the Doctor Tracker full-stack application o
    | Role | Email | Password |
    |------|-------|----------|
    | **Super Admin** | `admin@doctortracker.com` | `password123` |
+
+### Deploy from GitHub to Vercel
+
+1. Push this repository to GitHub, then import it from **Vercel → Add New → Project**.
+2. Keep the project root as the repository root. Vercel detects Next.js and pnpm from `package.json` and `pnpm-lock.yaml`; leave the build command, output directory, and install command at their detected defaults. This project does not need a `vercel.json` file.
+3. Add these environment variables in the Vercel project settings for **Production** and **Preview**:
+
+   | Key | Value |
+   |-----|-------|
+   | `MONGODB_URI` | MongoDB Atlas connection URI, including the `doctor-tracker` database name |
+   | `JWT_SECRET` | A private, randomly generated secret of at least 32 characters |
+   | `ADMIN_REGISTRATION_ENABLED` | `false` |
+
+   Keep `JWT_SECRET` and `MONGODB_URI` server-only; do not prefix them with `NEXT_PUBLIC_`. Keep registration disabled in deployed environments. After saving the variables, deploy or redeploy the project.
+4. Ensure the Atlas cluster's network access rules allow requests from Vercel. Vercel uses dynamic outbound IP addresses, so an Atlas allowlist may need broader access unless you configure a supported static/private connection option. Use a strong database password and a database user with only the permissions this application needs.
+
+Vercel's Hobby plan is intended for personal projects. Check its current usage limits before using the deployment for production workloads.
 
 ---
 
@@ -156,7 +175,23 @@ Doctor Tracker employs a **Full-Stack Monorepo Architecture** using the Next.js 
 
 ## 5. Visual Evidence & UI Showcase
 
-The descriptions below document the intended desktop and responsive layouts. Actual desktop and mobile screenshots still need to be captured from a running, populated instance before submission.
+The following screenshots show the populated application. The supplied images are desktop captures; add a mobile-sized capture before submission to complete the specification's desktop and mobile evidence requirement.
+
+### Dashboard
+
+![Doctor Tracker dashboard](./dashboard.png)
+
+### Appointments
+
+![Doctor Tracker appointments](./appointment.png)
+
+### Doctors
+
+![Doctor Tracker doctors](./doctors.png)
+
+### Patients
+
+![Doctor Tracker patients](./patient.png)
 
 ### Desktop View Highlights
 - **Executive Operations Dashboard**: 4 key statistical metric cards with month-over-month growth indicators, monthly registration area trends, specialization donut distribution, and physician workload bar chart.
