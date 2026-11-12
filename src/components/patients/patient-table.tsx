@@ -77,16 +77,6 @@ export function PatientTable({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/80">
-              {/* Checkbox Header matching Image 3 */}
-              <TableHead className="w-10 px-3">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={onSelectAllToggle}
-                  aria-label="Select all patients"
-                  className="h-4 w-4 rounded border-border/80 bg-muted/40 text-primary focus:ring-primary/40 cursor-pointer accent-teal-600"
-                />
-              </TableHead>
               <TableHead className="font-semibold text-xs uppercase tracking-wider text-muted-foreground min-w-[200px]">
                 Patient
               </TableHead>
@@ -124,22 +114,8 @@ export function PatientTable({
               return (
                 <TableRow
                   key={patient._id}
-                  className={cn(
-                    "hover:bg-muted/30 transition-colors border-b border-border/60",
-                    isSelected && "bg-muted/30"
-                  )}
+                  className="hover:bg-muted/30 transition-colors border-b border-border/60"
                 >
-                  {/* Row Checkbox */}
-                  <TableCell className="w-10 px-3">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => onSelectToggle && onSelectToggle(patient._id)}
-                      aria-label={`Select ${patient.name}`}
-                      className="h-4 w-4 rounded border-border/80 bg-muted/40 text-primary focus:ring-primary/40 cursor-pointer accent-teal-600"
-                    />
-                  </TableCell>
-
                   {/* Patient Name & Details */}
                   <TableCell>
                     <div className="flex items-center gap-3">

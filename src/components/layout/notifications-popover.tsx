@@ -222,7 +222,7 @@ export function NotificationsPopover() {
               Clinical Alerts & Notifications
             </h3>
             {unreadCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+              <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
                 {unreadCount} new
               </span>
             )}
